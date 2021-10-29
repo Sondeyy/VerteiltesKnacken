@@ -27,6 +27,10 @@ public class ObjectMessageReader {
         return ret;
     }
 
+    /**
+     * @param socket socket to send an object to
+     * @param msg the message object to send
+     */
     public void send(Socket socket, Message msg) {
         OutputStream os;
         try {

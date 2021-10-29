@@ -1,13 +1,10 @@
 package de.dhbw;
 
-import de.dhbw.MessageType;
-
 import java.io.Serializable;
 import java.time.Instant;
 
 /**
- * This class is a sendable message object , further
- * information may be added
+ * This class is a sendable message object
  */
 
 public class Message implements Serializable {
@@ -69,8 +66,8 @@ public class Message implements Serializable {
     }
 
     @Override
-    public String toString(){
-        String payload_string = getPayload()!= null ? getPayload().toString(): "no Payload";
+    public String toString() {
+        String payload_string = getPayload() != null ? getPayload().toString() : "no Payload";
         return this.getSender().concat(": ").concat(this.getTime().toString())
                 .concat(" - ").concat(this.getType().toString())
                 .concat(" - ").concat(payload_string);

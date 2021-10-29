@@ -7,7 +7,10 @@ public class Client implements Runnable {
 
     private Socket socket;
 
-    // initialize a connection by starting a socket with dns, port
+    /**
+     * @param port port to connect to
+     * @param dns host to connect to
+     */
     public void initializeConnection(int port, String dns) {
         try {
             this.socket = new Socket(dns, port);
@@ -16,7 +19,9 @@ public class Client implements Runnable {
         }
     }
 
-    // close the current connection
+    /**
+     * close the connection
+     */
     public void closeConnection() {
         try {
             socket.close();
@@ -25,7 +30,11 @@ public class Client implements Runnable {
         }
     }
 
-    // write Message to server, wait for response and return response
+    /**
+     * @param type message type
+     * @param payload payload
+     * @return Answer, which is returned
+     */
     private Message sendMessage(MessageType type, String payload) {
         ObjectMessageReader omr = new ObjectMessageReader();
 
@@ -63,7 +72,7 @@ public class Client implements Runnable {
         System.out.println("______________________");
 
         // send last_ten_messages Message
-        this.sendMessage(MessageType.GET_LAST_TEN, null);
+        this.sendMessage(MessageType.GET, "10");
 
         // close connection
         this.closeConnection();
@@ -81,6 +90,6 @@ public class Client implements Runnable {
         System.out.println("______________________");
 
         // send last_ten_messages Message
-        this.sendMessage(MessageType.GET_LAST_TEN, null);
+        this.sendMessage(MessageType.GET, "10");
     }
 }
