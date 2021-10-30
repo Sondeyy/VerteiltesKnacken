@@ -27,6 +27,7 @@ public class Worker implements Runnable{
 
         if (messageType == MessageType.WRITE) {
             messageList.add(message);
+            answer.setType(MessageType.OK);
         }
         else if (messageType == MessageType.GET) {
             int howMany = Integer.parseInt(message.getSender());
