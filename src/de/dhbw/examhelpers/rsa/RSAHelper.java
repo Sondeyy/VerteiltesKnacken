@@ -45,8 +45,8 @@ public class RSAHelper
     private AsymmetricCipherKeyPair getKeyPair(String p, String q)
     {
         // first we need the generator
-        eu.boxwork.dhbw.examhelpers.rsa.RSAKeyPairGenerator ownGenerator
-                = new eu.boxwork.dhbw.examhelpers.rsa.RSAKeyPairGenerator();
+        de.dhbw.examhelpers.rsa.RSAKeyPairGenerator ownGenerator
+                = new de.dhbw.examhelpers.rsa.RSAKeyPairGenerator();
         ownGenerator.init(new RSAKeyGenerationParameters(
                 RSAStatics.e,
                 new SecureRandom(),
@@ -102,8 +102,8 @@ public class RSAHelper
      * */
     public boolean isValid(BigInteger p, BigInteger q, BigInteger modulusPublicKey)
     {
-        eu.boxwork.dhbw.examhelpers.rsa.RSAKeyPairGenerator generator =
-                new eu.boxwork.dhbw.examhelpers.rsa.RSAKeyPairGenerator();
+        de.dhbw.examhelpers.rsa.RSAKeyPairGenerator generator =
+                new de.dhbw.examhelpers.rsa.RSAKeyPairGenerator();
         generator.init( new RSAKeyGenerationParameters(
                 RSAStatics.e,
                 new SecureRandom(),
