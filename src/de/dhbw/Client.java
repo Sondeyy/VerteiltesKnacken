@@ -4,12 +4,11 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class Client implements Runnable {
-
     private Socket socket;
 
     /**
      * @param port port to connect to
-     * @param dns host to connect to
+     * @param dns  host to connect to
      */
     public void initializeConnection(int port, String dns) {
         try {
@@ -31,7 +30,7 @@ public class Client implements Runnable {
     }
 
     /**
-     * @param type message type
+     * @param type    message type
      * @param payload payload
      * @return Answer, which is returned
      */
