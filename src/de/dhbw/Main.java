@@ -5,24 +5,22 @@ public class Main {
     public static void main(String[] args) {
         // init client
         Client client = new Client();
-        Thread client_thread = new Thread(client);
+        Thread clientThread = new Thread(client);
 
-        // init follower
-        Worker follower = new Worker(Role.FOLLOWER);
-        Thread follower_thread = new Thread(follower);
+        Worker worker1 = new Worker();
+        Thread worker1Thread = new Thread(worker1);
 
-        // init leader
-        Worker leader = new Worker(Role.LEADER);
-        Thread leader_thread = new Thread(leader);
+        Worker worker2 = new Worker();
+        Thread worker2Thread = new Thread(worker2);
 
-        client_thread.start();
-        follower_thread.start();
-        leader_thread.start();
+        clientThread.start();
+        worker1Thread.start();
+        worker2Thread.start();
         
         try {
-            client_thread.join();
-            follower_thread.join();
-            leader_thread.join();
+            clientThread.join();
+            worker1Thread.join();
+            worker2Thread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

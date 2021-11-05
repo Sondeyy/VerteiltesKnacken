@@ -9,7 +9,7 @@ import java.time.Instant;
  */
 public class Connection {
     transient private Socket socket;
-    // private Role role;
+    private Role role;
     private int id;
     private int port;
     private String dns;
