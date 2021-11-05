@@ -60,35 +60,5 @@ public class Client implements Runnable {
         // connect to LEADER
         this.initializeConnection(8080, "localhost");
 
-        // send 20 write requests to server
-        for (int x = 0; x <= 20; x++) {
-            String payload = "Hello World Nr ".concat(String.valueOf(x));
-            System.out.println("______________________");
-            System.out.println(x);
-            this.sendMessage(MessageType.WRITE, payload);
-        }
-
-        System.out.println("______________________");
-
-        // send last_ten_messages Message
-        this.sendMessage(MessageType.GET, "10");
-
-        // close connection
-        this.closeConnection();
-
-        // connect to FOLLOWER
-        this.initializeConnection(8081, "localhost");
-
-        // send 5 write requests to server
-        for (int x = 0; x <= 5; x++) {
-            System.out.println("______________________");
-            String payload = "Hello World Nr ".concat(String.valueOf(x));
-            this.sendMessage(MessageType.WRITE, payload);
-        }
-
-        System.out.println("______________________");
-
-        // send last_ten_messages Message
-        this.sendMessage(MessageType.GET, "10");
     }
 }

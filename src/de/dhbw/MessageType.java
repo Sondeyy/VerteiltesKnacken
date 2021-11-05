@@ -1,5 +1,5 @@
 package de.dhbw;
 
 public enum MessageType {
-    OK, WRITE, GET, ELECTION, HELLO, CLOSE,
+    OK, START, FINISHED, ANSWER_FOUND, FREE, ALTERNATIVES
 }
