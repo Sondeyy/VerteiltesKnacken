@@ -1,27 +1,55 @@
 package de.dhbw;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Worker implements Runnable {
-    private int id;
+    private final int id;
+    private int port;
+    private InetAddress address;
     private Socket socket;
-    private final List<Connection> workerConnectionList = new ArrayList<>();
-    private final List<Connection> clientConnectionList = new ArrayList<>();
+    private final List<Connection> connectionList = new ArrayList<>(); // handle clients and Workers that have not yet connected
+    private final List<Connection> workerConnectionList = new ArrayList<>(); // handle connected Workers
     private Message lastSend;
     private boolean active = true;
     private int okCount = 0;
 
-    public Worker() {
+    // state machine ?
+
+    public Worker(int id, List<Connection> workers) {
+        this.id = id;
+        for (Connection worker : workers) {
+            if(worker.getId() == this.id) {
+                this.port = worker.getPort();
+                this.address = worker.getAdress();
+            }
+        }
     }
 
     public void turnOff() {
         this.active = false;
     }
 
-    public void appendConnection(Connection connection) {
+    public void appendWorkerConnection(Connection newConnection) {
+
+        Connection connection;
+
+        // if worker is already in list, replace worker
+        for (int i = 0; i < workerConnectionList.size(); i++) {
+            connection = workerConnectionList.get(i);
+            if(connection.getAdress() == newConnection.getAdress() && connection.getPort() == newConnection.getPort()){
+                workerConnectionList.set(i,newConnection);
+                return;
+            }
+        }
+
+        this.clientConnectionList.add(newConnection);
+    }
+
+    public void appendClientConnection(Connection connection) {
         this.workerConnectionList.add(connection);
     }
 
@@ -40,7 +68,7 @@ public class Worker implements Runnable {
                 // I am allowed to calc
             }
             // else
-            // maybe some other worker is down -> wait some time
+            // maybe some other worker is down -> wait some random time
             // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
         } else if (messageType == MessageType.NOK) {
             if (lastSend.getType() == MessageType.FREE) {
@@ -50,6 +78,7 @@ public class Worker implements Runnable {
         } else if (messageType == MessageType.START) {
 
         } else if (messageType == MessageType.FINISHED) {
+            // add solution to solution array
 
         } else if (messageType == MessageType.ANSWER_FOUND) {
 
@@ -67,7 +96,7 @@ public class Worker implements Runnable {
         connectionHandlerThread.start();
 
         for (Connection connection : workerConnectionList) {
-            if (connection.getId() != this.id) {
+            if (connection.getId() != this.id && connection.getSocket() == null) {
                 try {
                     connection.connect();
                 } catch (IOException e) {
@@ -93,5 +122,11 @@ public class Worker implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    // getters and setters
+
+    public int getId() {
+        return id;
     }
 }

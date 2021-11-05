@@ -6,10 +6,11 @@ import java.net.Socket;
 import java.util.Objects;
 
 public class ConnectionHandler implements Runnable {
-    private Worker worker;
+    private final Worker worker;
     private boolean active = true;
 
     public ConnectionHandler(Worker worker) {
+        this.worker = worker;
     }
 
     public void turnOff() {
@@ -20,7 +21,7 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         ServerSocket server = null;
         try {
-            server = new ServerSocket(8080);
+            server = new ServerSocket(getWorker().getId());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -28,6 +29,8 @@ public class ConnectionHandler implements Runnable {
             try {
                 Socket newSocket = Objects.requireNonNull(server).accept();
                 Connection newConnection = new Connection(newSocket);
+
+                // client vs worker connection ?
                 worker.appendConnection(newConnection);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -38,5 +41,9 @@ public class ConnectionHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Worker getWorker() {
+        return worker;
     }
 }
