@@ -6,7 +6,7 @@ import java.net.Socket;
 import java.util.Objects;
 
 public class ConnectionHandler implements Runnable {
-    private final Worker worker;
+    private final Worker worker; // the parent worker of the ConnectionHandler thread
     private boolean active = true;
 
     public ConnectionHandler(Worker worker) {
@@ -21,7 +21,7 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         ServerSocket server = null;
         try {
-            server = new ServerSocket(getWorker().getId());
+            server = new ServerSocket(getWorker().getMyPort());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -31,6 +31,7 @@ public class ConnectionHandler implements Runnable {
                 Connection newConnection = new Connection(newSocket);
 
                 // client vs worker connection ?
+                newConnection.connectStreams();
                 worker.appendConnection(newConnection);
             } catch (IOException e) {
                 e.printStackTrace();

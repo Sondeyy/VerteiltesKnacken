@@ -3,41 +3,31 @@ package de.dhbw;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.time.Instant;
 
 /**
  * This class represents a single connection
  */
 public class Connection {
     transient private Socket socket = null;
-    private Role role;
+    private Role role = Role.UNKNOWN;
     private int id;
     private int port;
-    private InetAddress adress;
+    private InetAddress address;
     transient private ObjectOutputStream objectOutputStream;
     transient private ObjectInputStream objectInputStream;
 
     public Connection(Socket socket) {
         this.socket = socket;
-
-        if(this.socket != null){
-            this.port = socket.getPort();
-            this.adress = socket.getInetAddress();
-        }
-
+        this.port = socket.getPort();
+        this.address = socket.getInetAddress();
     }
 
-    public void connect() throws IOException {
-        // only connect, if socket is not already connected
-        if(this.socket != null){
-            this.socket = new Socket(adress, port);
-
-            // create input and output streams
-            InputStream is = this.socket.getInputStream();
-            this.objectInputStream = new ObjectInputStream(is);
-            OutputStream os = this.socket.getOutputStream();
-            this.objectOutputStream = new ObjectOutputStream(os);
-        }
+    public void connectStreams() throws IOException {
+        // create input and output streams
+        InputStream is = this.socket.getInputStream();
+        this.objectInputStream = new ObjectInputStream(is);
+        OutputStream os = this.socket.getOutputStream();
+        this.objectOutputStream = new ObjectOutputStream(os);
     }
 
     public Socket getSocket() {
@@ -56,8 +46,12 @@ public class Connection {
         return port;
     }
 
-    public InetAddress getAdress() {
-        return adress;
+    public InetAddress getAddress() {
+        return address;
+    }
+
+    public Role getRole(){
+        return role;
     }
 
     public int available() {

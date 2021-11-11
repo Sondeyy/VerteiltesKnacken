@@ -2,60 +2,45 @@ package de.dhbw;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Worker implements Runnable {
-    private final int id;
-    private int port;
-    private InetAddress address;
-    private Socket socket;
-    private final List<Connection> connectionList = new ArrayList<>(); // handle clients and Workers that have not yet connected
-    private final List<Connection> workerConnectionList = new ArrayList<>(); // handle connected Workers
-    private Message lastSend;
+    private int id;
+    private int myPort;
+    private int initPort;
+    private InetAddress initAdress;
+
+    private final ConcurrentHashMap<Integer, Connection> connections = new ConcurrentHashMap<>(); // handle workers and clients
+    private final Qeuue broadcasts;
     private boolean active = true;
     private int okCount = 0;
+    private States state = States.INIT;
 
     // state machine ?
 
-    public Worker(int id, List<Connection> workers) {
-        this.id = id;
-        for (Connection worker : workers) {
-            if(worker.getId() == this.id) {
-                this.port = worker.getPort();
-                this.address = worker.getAdress();
-            }
-        }
+    public Worker(int myPort, InetAddress initAddress, int initPort ) {
+        this.myPort = myPort;
+        this.initAdress = initAddress;
+        this.initPort = initPort;
     }
 
     public void turnOff() {
         this.active = false;
     }
 
-    public void appendWorkerConnection(Connection newConnection) {
-
-        Connection connection;
-
-        // if worker is already in list, replace worker
-        for (int i = 0; i < workerConnectionList.size(); i++) {
-            connection = workerConnectionList.get(i);
-            if(connection.getAdress() == newConnection.getAdress() && connection.getPort() == newConnection.getPort()){
-                workerConnectionList.set(i,newConnection);
-                return;
-            }
-        }
-
-        this.clientConnectionList.add(newConnection);
-    }
-
-    public void appendClientConnection(Connection connection) {
-        this.workerConnectionList.add(connection);
+    public synchronized void appendConnection(Connection connection) {
+        // KEY ??
+        this.connections.put(connection);
     }
 
     private void send(Message message, Connection connection) {
         connection.write(message);
-        this.lastSend = message;
+    }
+
+    private void broadcast(Message message){
+        // broadcast to every connection of node workers
     }
 
     private void reactToMessage(Message message, Connection connection) {
@@ -64,7 +49,7 @@ public class Worker implements Runnable {
 
         if (messageType == MessageType.OK) {
             // check if section accepted equals section requested
-            if (lastSend.getType() == MessageType.FREE && this.okCount == this.workerConnectionList.size() - 1) {
+            if (this.state == States.WAIT_FOR_RESOURCE && this.okCount == this.workerConnectionList.size() - 1) {
                 // I am allowed to calc
             }
             // else
@@ -94,6 +79,8 @@ public class Worker implements Runnable {
         ConnectionHandler connectionHandler = new ConnectionHandler(this);
         Thread connectionHandlerThread = new Thread(connectionHandler);
         connectionHandlerThread.start();
+
+        // connect to
 
         for (Connection connection : workerConnectionList) {
             if (connection.getId() != this.id && connection.getSocket() == null) {
@@ -126,7 +113,8 @@ public class Worker implements Runnable {
 
     // getters and setters
 
-    public int getId() {
-        return id;
+
+    public int getMyPort() {
+        return myPort;
     }
 }
