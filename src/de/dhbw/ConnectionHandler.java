@@ -31,7 +31,7 @@ public class ConnectionHandler implements Runnable {
                 Connection newConnection = new Connection(newSocket);
 
                 // client vs worker connection ?
-                worker.appendConnection(newConnection);
+                worker.appendWorkerConnection(newConnection);
             } catch (IOException e) {
                 e.printStackTrace();
             }

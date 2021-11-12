@@ -3,7 +3,6 @@ package de.dhbw;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.time.Instant;
 
 /**
  * This class represents a single connection
@@ -13,24 +12,23 @@ public class Connection {
     private Role role;
     private int id;
     private int port;
-    private InetAddress adress;
+    private InetAddress address;
     transient private ObjectOutputStream objectOutputStream;
     transient private ObjectInputStream objectInputStream;
 
     public Connection(Socket socket) {
         this.socket = socket;
 
-        if(this.socket != null){
+        if (this.socket != null) {
             this.port = socket.getPort();
-            this.adress = socket.getInetAddress();
+            this.address = socket.getInetAddress();
         }
-
     }
 
     public void connect() throws IOException {
         // only connect, if socket is not already connected
-        if(this.socket != null){
-            this.socket = new Socket(adress, port);
+        if (this.socket != null) {
+            this.socket = new Socket(address, port);
 
             // create input and output streams
             InputStream is = this.socket.getInputStream();
@@ -56,8 +54,8 @@ public class Connection {
         return port;
     }
 
-    public InetAddress getAdress() {
-        return adress;
+    public InetAddress getAddress() {
+        return address;
     }
 
     public int available() {
@@ -78,7 +76,7 @@ public class Connection {
         return null;
     }
 
-    public void write(Message message){
+    public void write(Message message) {
         try {
             this.objectOutputStream.writeObject(message);
         } catch (IOException e) {

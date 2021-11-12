@@ -8,8 +8,8 @@ import java.time.Instant;
  */
 
 public class Message implements Serializable {
-    private String sender;
-    private String receiver;
+    private int sender;
+    private int receiver;
     private Object payload;
     private Instant time = Instant.now();
     private MessageType type;
@@ -17,19 +17,19 @@ public class Message implements Serializable {
 
     /* GETTER - SETTER */
 
-    public String getSender() {
+    public int getSender() {
         return sender;
     }
 
-    public void setSender(String sender) {
+    public void setSender(int sender) {
         this.sender = sender;
     }
 
-    public String getReceiver() {
+    public int getReceiver() {
         return receiver;
     }
 
-    public void setReceiver(String receiver) {
+    public void setReceiver(int receiver) {
         this.receiver = receiver;
     }
 
@@ -68,7 +68,7 @@ public class Message implements Serializable {
     @Override
     public String toString() {
         String payload_string = getPayload() != null ? getPayload().toString() : "no Payload";
-        return this.getSender().concat(": ").concat(this.getTime().toString())
+        return String.valueOf(this.getSender()).concat(": ").concat(this.getTime().toString())
                 .concat(" - ").concat(this.getType().toString())
                 .concat(" - ").concat(payload_string);
     }

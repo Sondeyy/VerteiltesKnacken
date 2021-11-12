@@ -40,8 +40,8 @@ public class Client implements Runnable {
         // create WRITE message
         Message msg = new Message();
         msg.setPayload(payload);
-        msg.setSender("Client");
-        msg.setReceiver("Server");
+        msg.setSender(1);
+        msg.setReceiver(2);
         msg.setType(type);
 
         // send payload to socket

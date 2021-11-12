@@ -1,32 +1,61 @@
 package de.dhbw;
 
-import java.io.IOException;
+import java.io.*;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Worker implements Runnable {
     private final int id;
     private int port;
     private InetAddress address;
     private Socket socket;
-    private final List<Connection> connectionList = new ArrayList<>(); // handle clients and Workers that have not yet connected
+    private State state;
+    private final List<Connection> clientConnectionList = new ArrayList<>(); // handle clients and Workers that have not yet connected
     private final List<Connection> workerConnectionList = new ArrayList<>(); // handle connected Workers
-    private Message lastSend;
+    private List<Connection> okFrom = new ArrayList<>();
     private boolean active = true;
-    private int okCount = 0;
+    private Instant askedOk;
+    private final List<BigInteger> primes = new ArrayList<>();
 
     // state machine ?
 
-    public Worker(int id, List<Connection> workers) {
+    public Worker(int id, List<Connection> workers, int range) {
         this.id = id;
         for (Connection worker : workers) {
             if(worker.getId() == this.id) {
                 this.port = worker.getPort();
-                this.address = worker.getAdress();
+                this.address = worker.getAddress();
             }
         }
+
+        String basePath = new File("").getAbsolutePath();
+        String file = basePath.concat("/rc/".concat(String.valueOf(range).concat(".txt")));
+
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+
+            while (line != null) {
+                primes.add(new BigInteger(line));
+                line = br.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                Objects.requireNonNull(br).close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     public void turnOff() {
@@ -40,7 +69,7 @@ public class Worker implements Runnable {
         // if worker is already in list, replace worker
         for (int i = 0; i < workerConnectionList.size(); i++) {
             connection = workerConnectionList.get(i);
-            if(connection.getAdress() == newConnection.getAdress() && connection.getPort() == newConnection.getPort()){
+            if(connection.getAddress() == newConnection.getAddress() && connection.getPort() == newConnection.getPort()){
                 workerConnectionList.set(i,newConnection);
                 return;
             }
@@ -55,35 +84,46 @@ public class Worker implements Runnable {
 
     private void send(Message message, Connection connection) {
         connection.write(message);
-        this.lastSend = message;
     }
 
     private void reactToMessage(Message message, Connection connection) {
         MessageType messageType = message.getType();
         Message answer = new Message();
 
+        // if msg is not for me and no broadcast -> don't react to it
+        if (!(message.getReceiver() == this.id || message.getReceiver() == 0)) {
+            return;
+        }
+
         if (messageType == MessageType.OK) {
             // check if section accepted equals section requested
-            if (lastSend.getType() == MessageType.FREE && this.okCount == this.workerConnectionList.size() - 1) {
-                // I am allowed to calc
+            if (state == State.WAITING) {
+                okFrom.add(connection);
+
+                if (okFrom.size() == this.workerConnectionList.size()) {
+                    // I am allowed to calc
+                }
             }
-            // else
-            // maybe some other worker is down -> wait some random time
-            // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
         } else if (messageType == MessageType.NOK) {
-            if (lastSend.getType() == MessageType.FREE) {
+            if (state == State.WAITING) {
                 // I'm not allowed
+                okFrom = new ArrayList<>();
             }
             // doesn't bother me
         } else if (messageType == MessageType.START) {
+            List<Connection> connectionsReceived;
+            connectionsReceived = (List<Connection>) message.getPayload();
 
+            for (Connection connectionReceived : connectionsReceived) {
+                this.appendWorkerConnection(connectionReceived);
+            }
         } else if (messageType == MessageType.FINISHED) {
             // add solution to solution array
 
+
         } else if (messageType == MessageType.ANSWER_FOUND) {
-
+            // somebody found the solution -> finish
         } else if (messageType == MessageType.FREE) {
-
         }
 
         send(answer, connection);
@@ -114,6 +154,11 @@ public class Worker implements Runnable {
                     }
                 }
             }
+            if (state == State.WAITING && Duration.between(askedOk, Instant.now()).toSeconds() > 1) {
+                // not enough workers answered my request
+                // some worker is down
+
+            }
         }
 
         connectionHandler.turnOff();
@@ -125,7 +170,6 @@ public class Worker implements Runnable {
     }
 
     // getters and setters
-
     public int getId() {
         return id;
     }

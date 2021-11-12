@@ -13,10 +13,10 @@ public class Main {
         // create list of nodes in network
         List<Connection> network = new ArrayList<>();
 
-        Worker worker1 = new Worker(1, network);
+        Worker worker1 = new Worker(1, network, 100);
         Thread worker1Thread = new Thread(worker1);
 
-        Worker worker2 = new Worker(2, network);
+        Worker worker2 = new Worker(2, network, 100);
         Thread worker2Thread = new Thread(worker2);
 
         clientThread.start();
