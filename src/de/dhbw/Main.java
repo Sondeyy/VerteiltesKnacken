@@ -40,11 +40,11 @@ public class Main {
 
         // DEBUGGING
         Thread.sleep(2500);
-        System.out.println("----------------------------------------");
+        System.out.println("---------- Connections ----------------");
         System.out.println("Worker1: ".concat(worker1.getConnections().toString()));
         System.out.println("Worker2: ".concat(worker2.getConnections().toString()));
         System.out.println("Worker3: ".concat(worker3.getConnections().toString()));
-        System.out.println("----------------------------------------");
+        System.out.println("---------- Broadcast Test ---------------");
 
         Message test = new Message();
         test.setType(MessageType.HELLO);

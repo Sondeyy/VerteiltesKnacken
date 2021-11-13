@@ -74,8 +74,9 @@ public class Worker implements Runnable {
         }
     }
 
-    public void joinCluster(InetAddress address, int port){
-        Logger.log("Joining Cluster");
+    public Connection requestClusterJoin(InetAddress address, int port){
+        Logger.log("JOIN CLUSTER VIA: ".concat(address.toString()).concat(":").concat(Integer.toString(port)));
+
         // connect to arbitrary node in cluster
         Connection initial_connection = connectTo(address, port);
         initial_connection.setRole(Role.WORKER);
@@ -83,27 +84,24 @@ public class Worker implements Runnable {
         // send JOIN Message to ask for nodes in cluster
         Message join_request = new Message();
         join_request.setType(MessageType.JOIN);
+
         // include own ListenerPort, so that other workers know how to connect
-        join_request.setPayload(new WorkerInfo(listenerPort,myAddress));
+        join_request.setPayload(new WorkerInfo(listenerPort, myAddress));
         initial_connection.write(join_request);
 
-        Logger.log("SENDING JOIN REQUEST");
+        return initial_connection;
+    }
 
-        // todo: split up
-
-        Message response = initial_connection.read();
-        // cluster_nodes contains all worker nodes except the one connected to
-        ConcurrentHashMap<String,Connection> cluster_nodes = (ConcurrentHashMap<String, Connection>) response.getPayload();
-
-        // establish connections with all workers
-        for (Connection worker : cluster_nodes.values()) {
-            // todo: There is a function "connectTo" that creates a connection and you can call a connect function on a connection
-            InetAddress new_address = worker.getAddress();
-            int new_port = worker.getlistenerPort();
+    public void joinCluster(ArrayList<WorkerInfo> clusterInfo){
+        // clusterInfo contains all workers except the one connected to
+        // establish connections with all workers in cluster
+        for (WorkerInfo worker : clusterInfo) {
 
             // connect to nodes and set them as worker
-            Connection new_connection = connectTo(new_address, new_port);
+            Connection new_connection = connectTo(worker.address, worker.listenerPort);
             new_connection.setRole(Role.WORKER);
+
+            // todo: Call Append here ? --> Give Listener Port as parameter, when accepting connections, set Listener Port correctly ?
         }
 
         // broadcast a request to join the cluster after connecting with every node
@@ -116,25 +114,15 @@ public class Worker implements Runnable {
         Logger.log("Broadcasting message: ".concat(message.toString()));
         // broadcast message to every connection of node workers
 
-
-        ArrayList<Role> roles = new ArrayList<>();
-
         for (Connection connection : connections.values()) {
-            roles.add(connection.getRole());
             if(connection.getRole() == Role.WORKER){
                 connection.write(message);
-
-                // todo: reminder_ remove
-
             }
         }
-
-        Logger.log("BROADCAST POSSIBLE ROLES: ".concat(roles.toString()));
     }
 
     private void reactToMessage(Message message, Connection connection) {
         MessageType messageType = message.getType();
-        Role senderRole = connection.getRole();
         Message answer = new Message();
 
         // the role unknown is only used immediately after connecting, wait for either
@@ -162,25 +150,26 @@ public class Worker implements Runnable {
             broadcast(answer);
 
         } else if(messageType == MessageType.JOIN){
-            // set the ListenerPort of the connection, that was sent with the JOIN message
+            // set the local ListenerPort of the connection, that was sent with the JOIN message
             WorkerInfo connection_info = (WorkerInfo) message.getPayload();
+
+            // todo: Beibehalten, oder ID verwenden ?
             connection.setListenerPort(connection_info.listenerPort);
 
-            // send new worker a Hashmap of all nodes in the network --> without clients
-            ConcurrentHashMap<String,Connection> workers_in_cluster = new ConcurrentHashMap<>(connections);
-            workers_in_cluster.values().removeIf(entry -> entry.getRole() != Role.WORKER);
-            answer.setPayload(workers_in_cluster);
+            // send new worker a List of all nodes in the cluster --> without clients
+            ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
+            answer.setPayload(clusterInfo);
             answer.setType(MessageType.CLUSTER_INFO);
             connection.write(answer);
-
-            // add worker to the cluster
-            connection.setRole(Role.WORKER);
-            Logger.log(getConnections().toString());
 
         } else if(messageType == MessageType.CONNECT_CLUSTER) {
 
             // connection is already established, set role from UNKNOWN to WORKER
             connection.setRole(Role.WORKER);
+
+        } else if(messageType == MessageType.CLUSTER_INFO){
+
+            //
 
         } else if (messageType == MessageType.OK) {
             // check if section accepted equals section requested
@@ -205,9 +194,22 @@ public class Worker implements Runnable {
         }
     }
 
+    private ArrayList<WorkerInfo> getClusterInfo(){
+        ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
+
+        for (Connection connection : connections.values()) {
+            if(connection.getRole() == Role.WORKER){
+                WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+                cluster_nodes.add(worker);
+            }
+        }
+
+        return cluster_nodes;
+    }
+
     @Override
     public void run() {
-        Logger.log("Running on port: ".concat(Integer.toString(listenerPort)));
+        Logger.log("Listening on port: ".concat(Integer.toString(listenerPort)));
 
         // initialize child threads
         ConnectionHandler connectionHandler = new ConnectionHandler(this);
@@ -215,16 +217,26 @@ public class Worker implements Runnable {
         connectionHandlerThread.setName(Thread.currentThread().getName().concat(" ConnectionHandler"));
         connectionHandlerThread.start();
 
-        // connect to the cluster if not the first node
+        // connect to the cluster if I am not the first node
         if(!first_node){
-            joinCluster(initAddress, initPort);
-        }
+            Connection initial_connection = requestClusterJoin(initAddress, initPort);
 
+            boolean connectionEstablished = false;
+            do {
+                if(initial_connection.available() != 0){
 
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+                    Message response = initial_connection.read();
+                    ArrayList<WorkerInfo> clusterInfo = (ArrayList<WorkerInfo>) response.getPayload();
+                    joinCluster(clusterInfo);
+                    connectionEstablished = true;
+                } else {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } while (!connectionEstablished);
         }
 
         Logger.log("Connections: ".concat(connections.toString()));

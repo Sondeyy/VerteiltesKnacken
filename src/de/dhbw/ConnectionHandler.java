@@ -30,14 +30,12 @@ public class ConnectionHandler implements Runnable {
         while (active) {
             try {
                 Socket newSocket = Objects.requireNonNull(server).accept();
-                Logger.log("Establish connection");
                 Connection newConnection = new Connection(newSocket);
 
                 // client vs worker connection ?
                 newConnection.connectStreamsServer();
-                Logger.log("Streams connected");
                 worker.appendConnection(newConnection);
-                Logger.log("Added connection to hashmap");
+                Logger.log("Connection Established!");
             } catch (IOException e) {
                 e.printStackTrace();
             }
