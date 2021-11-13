@@ -32,9 +32,8 @@ public class Client implements Runnable {
     /**
      * @param type    message type
      * @param payload payload
-     * @return Answer, which is returned
      */
-    private Message sendMessage(MessageType type, String payload) {
+    private void sendMessage(MessageType type, String payload) {
         ObjectMessageReader omr = new ObjectMessageReader();
 
         // create WRITE message
@@ -47,18 +46,18 @@ public class Client implements Runnable {
         // send payload to socket
         omr.send(socket, msg);
         System.out.println("CLIENT SEND: ".concat(msg.toString()));
-
-        // wait for response
-        Message answer = omr.read(socket); // wait for response
-        System.out.println("CLIENT RECEIVED: ".concat(answer.toString()));
-        return answer;
     }
 
     @Override
     public void run() {
 
         // connect to LEADER
-        this.initializeConnection(8080, "localhost");
+        this.initializeConnection(19999, "localhost");
 
+        for( int i = 0; i < 10; i++)
+            Logger.log("Sending ping");
+            this.sendMessage(MessageType.JOIN, "ping");
+
+        this.closeConnection();
     }
 }

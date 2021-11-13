@@ -68,8 +68,7 @@ public class Message implements Serializable {
     @Override
     public String toString() {
         String payload_string = getPayload() != null ? getPayload().toString() : "no Payload";
-        return this.getSender().concat(": ").concat(this.getTime().toString())
-                .concat(" - ").concat(this.getType().toString())
+        return "".concat(this.getType().toString())
                 .concat(" - ").concat(payload_string);
     }
 }

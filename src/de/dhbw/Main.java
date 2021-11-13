@@ -1,30 +1,60 @@
 package de.dhbw;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException, UnknownHostException {
         // init client
-        Client client = new Client();
-        Thread clientThread = new Thread(client);
+        //Client client = new Client();
+        //Thread clientThread = new Thread(client);
+        InetAddress localhost_ip = InetAddress.getByName("localhost");
 
-        // create list of nodes in network
-        List<Connection> network = new ArrayList<>();
+        int port_W1 = 25000;
+        int port_W2 = 24000;
+        int port_W3 = 23000;
 
-        Worker worker1 = new Worker(1, network);
+        Worker worker1 = new Worker(port_W1, localhost_ip);
         Thread worker1Thread = new Thread(worker1);
+        worker1Thread.setName("Worker 1");
 
-        Worker worker2 = new Worker(2, network);
+        Worker worker2 = new Worker(port_W2, localhost_ip, port_W1, localhost_ip);
         Thread worker2Thread = new Thread(worker2);
+        worker2Thread.setName("Worker 2");
 
-        clientThread.start();
+        Worker worker3 = new Worker(port_W3, localhost_ip, port_W1, localhost_ip);
+        Thread worker3Thread = new Thread(worker3);
+        worker3Thread.setName("Worker 3");
+
+        System.out.println("--------------- start T1 -------------");
         worker1Thread.start();
+        Thread.sleep(1000);
+        System.out.println("--------------- start T2 -------------");
         worker2Thread.start();
+        Thread.sleep(1000);
+        System.out.println("--------------- start T3 -------------");
+        worker3Thread.start();
+        Thread.sleep(100);
+        //clientThread.start();
+
+        // DEBUGGING
+        Thread.sleep(2500);
+        System.out.println("----------------------------------------");
+        System.out.println("Worker1: ".concat(worker1.getConnections().toString()));
+        System.out.println("Worker2: ".concat(worker2.getConnections().toString()));
+        System.out.println("Worker3: ".concat(worker3.getConnections().toString()));
+        System.out.println("----------------------------------------");
+
+        Message test = new Message();
+        test.setType(MessageType.HELLO);
+        test.setPayload("TESSSTT");
+        worker1.broadcast(test);
+        worker2.broadcast(test);
+        worker3.broadcast(test);
         
         try {
-            clientThread.join();
+            // clientThread.join();
             worker1Thread.join();
             worker2Thread.join();
         } catch (InterruptedException e) {

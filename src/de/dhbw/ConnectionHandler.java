@@ -21,18 +21,23 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         ServerSocket server = null;
         try {
-            server = new ServerSocket(getWorker().getMyPort());
+            Logger.log("Opening Serversocket on port: ".concat(Integer.toString(worker.getListenerPort())));
+            server = new ServerSocket(worker.getListenerPort(), 100, worker.getMyAddress());
         } catch (IOException e) {
             e.printStackTrace();
+            Logger.log("Failed to connect Serversocket on Port: ".concat(Integer.toString(worker.getListenerPort())));
         }
         while (active) {
             try {
                 Socket newSocket = Objects.requireNonNull(server).accept();
+                Logger.log("Establish connection");
                 Connection newConnection = new Connection(newSocket);
 
                 // client vs worker connection ?
-                newConnection.connectStreams();
+                newConnection.connectStreamsServer();
+                Logger.log("Streams connected");
                 worker.appendConnection(newConnection);
+                Logger.log("Added connection to hashmap");
             } catch (IOException e) {
                 e.printStackTrace();
             }
