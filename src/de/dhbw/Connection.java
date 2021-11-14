@@ -8,7 +8,7 @@ import java.net.Socket;
  * This class represents a single connection
  */
 public class Connection implements Serializable{
-    transient private Socket socket = null;
+    transient private Socket socket;
     private Role role = Role.UNKNOWN;
     private int ListenerPort;
     private final InetAddress address;
@@ -52,10 +52,6 @@ public class Connection implements Serializable{
         return address.toString().concat(":").concat(Integer.toString(port));
     }
 
-    public Socket getSocket() {
-        return socket;
-    }
-
     public int getlistenerPort() {
         return ListenerPort;
     }
@@ -71,14 +67,14 @@ public class Connection implements Serializable{
     public Role getRole(){
         return role;
     }
+    public boolean available() {
 
-    public int available() {
         try {
-            return objectInputStream.available();
+            return objectInputStream.available() != 0;
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
-        return 0;
     }
 
     public synchronized Message read() {
@@ -105,6 +101,16 @@ public class Connection implements Serializable{
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public void close(){
+        try {
+            objectOutputStream.close();
+            objectInputStream.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
