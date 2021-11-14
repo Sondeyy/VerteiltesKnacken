@@ -5,17 +5,18 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Worker implements Runnable {
     private int id;
     private WorkerInfo info;
+    // todo: consolidate
     private int listenerPort;
     private InetAddress myAddress;
     private int initPort = 0;
     private InetAddress initAddress = null;
 
-    private final ConcurrentHashMap<String, Connection> connections = new ConcurrentHashMap<>(); // handle workers and clients
+    private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     // private final Qeuue broadcasts;
     private HashMap<String,Object> decryptRequestInformation;
     private boolean active = true;
@@ -43,11 +44,12 @@ public class Worker implements Runnable {
     }
 
     public void appendConnection(Connection connection) {
-        InetAddress address = connection.getAddress();
-        // todo: Really listener Port ?
-        int port = connection.getSocket().getPort();
-        String key = concatAddressPort(address, port);
-        this.connections.put(key,connection);
+        // InetAddress address = connection.getAddress();
+        // int port = connection.getSocket().getPort();
+        //String key = concatAddressPort(address, port);
+        //this.connections.put(key,connection);
+
+        connections.add(connection);
     }
 
     private String concatAddressPort(InetAddress address, int port){
@@ -62,8 +64,8 @@ public class Worker implements Runnable {
 
             Connection connection = new Connection(socket);
             connection.connectStreamsClient();
-            String key = concatAddressPort(address, port);
-            connections.put(key, connection);
+            connections.add(connection);
+            // todo: Rausmachen, und ID verwenden ?
 
             Logger.log(String.format("Connected to: %s:%d", address, port));
 
@@ -85,8 +87,6 @@ public class Worker implements Runnable {
         Message join_request = new Message();
         join_request.setType(MessageType.JOIN);
 
-        // include own ListenerPort, so that other workers know how to connect
-        join_request.setPayload(new WorkerInfo(listenerPort, myAddress));
         initial_connection.write(join_request);
 
         return initial_connection;
@@ -97,9 +97,16 @@ public class Worker implements Runnable {
         // establish connections with all workers in cluster
         for (WorkerInfo worker : clusterInfo) {
 
+            Connection connection = null;
             // connect to nodes and set them as worker
+            for (Connection test_connection : connections) {
+                if(test_connection.getlistenerPort())
+            }
+            // todo: Problem. Not everyone knows Listener Port of whole cluster  
+
             Connection new_connection = connectTo(worker.address, worker.listenerPort);
             new_connection.setRole(Role.WORKER);
+            new_connection.setListenerPort(worker.listenerPort);
 
             // todo: Call Append here ? --> Give Listener Port as parameter, when accepting connections, set Listener Port correctly ?
         }
@@ -107,14 +114,17 @@ public class Worker implements Runnable {
         // broadcast a request to join the cluster after connecting with every node
         Message connect_cluster_request = new Message();
         connect_cluster_request.setType(MessageType.CONNECT_CLUSTER);
+        // include own ListenerPort, so that other workers know how to connect
+        connect_cluster_request.setPayload(new WorkerInfo(listenerPort, myAddress));
         broadcast(connect_cluster_request);
     }
 
     public void broadcast(Message message){
+        // todo: Outsource to own Thread ?
         Logger.log("Broadcasting message: ".concat(message.toString()));
         // broadcast message to every connection of node workers
 
-        for (Connection connection : connections.values()) {
+        for (Connection connection : connections) {
             if(connection.getRole() == Role.WORKER){
                 connection.write(message);
             }
@@ -124,10 +134,6 @@ public class Worker implements Runnable {
     private void reactToMessage(Message message, Connection connection) {
         MessageType messageType = message.getType();
         Message answer = new Message();
-
-        // the role unknown is only used immediately after connecting, wait for either
-        // RSA Message --> connection is client
-        // JOIN Message --> connection is worker that wants to join the network
 
         if(messageType == MessageType.RSA){
 
@@ -150,11 +156,6 @@ public class Worker implements Runnable {
             broadcast(answer);
 
         } else if(messageType == MessageType.JOIN){
-            // set the local ListenerPort of the connection, that was sent with the JOIN message
-            WorkerInfo connection_info = (WorkerInfo) message.getPayload();
-
-            // todo: Beibehalten, oder ID verwenden ?
-            connection.setListenerPort(connection_info.listenerPort);
 
             // send new worker a List of all nodes in the cluster --> without clients
             ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
@@ -163,6 +164,9 @@ public class Worker implements Runnable {
             connection.write(answer);
 
         } else if(messageType == MessageType.CONNECT_CLUSTER) {
+            // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
+            WorkerInfo connection_info = (WorkerInfo) message.getPayload();
+            connection.setListenerPort(connection_info.listenerPort);
 
             // connection is already established, set role from UNKNOWN to WORKER
             connection.setRole(Role.WORKER);
@@ -197,12 +201,15 @@ public class Worker implements Runnable {
     private ArrayList<WorkerInfo> getClusterInfo(){
         ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
 
-        for (Connection connection : connections.values()) {
+        for (Connection connection : connections) {
             if(connection.getRole() == Role.WORKER){
                 WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
                 cluster_nodes.add(worker);
             }
         }
+
+        // add information about myself
+        cluster_nodes.add(new WorkerInfo(listenerPort, myAddress));
 
         return cluster_nodes;
     }
@@ -245,7 +252,7 @@ public class Worker implements Runnable {
             // get work --> FINISHED_TASK
 
             // check client and worker messages
-            for (Connection connection : connections.values()) {
+            for (Connection connection : connections) {
                 if (connection.available() != 0) {
                     Message newMessage = connection.read();
                     Logger.log("Data available: ".concat(newMessage.toString()));
@@ -273,7 +280,7 @@ public class Worker implements Runnable {
         return myAddress;
     }
 
-    public ConcurrentHashMap<String, Connection> getConnections() {
+    public CopyOnWriteArrayList<Connection> getConnections() {
         return connections;
     }
 }

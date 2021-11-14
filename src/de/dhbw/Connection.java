@@ -81,7 +81,7 @@ public class Connection implements Serializable{
         return 0;
     }
 
-    public Message read() {
+    public synchronized Message read() {
         try {
             int delimiter = this.objectInputStream.readInt();
             return (Message) objectInputStream.readObject();
@@ -91,7 +91,7 @@ public class Connection implements Serializable{
         return null;
     }
 
-    public void write(Message message){
+    public synchronized void write(Message message){
         message.setReceiver(concatAddressPort(socket.getInetAddress(), socket.getPort()));
         try {
             Logger.log("Write Message: ".concat(message.toString().concat("--> ").concat(Integer.toString(socket.getPort()))));
@@ -105,6 +105,16 @@ public class Connection implements Serializable{
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    @Override
+    public String toString(){
+        if(socket != null){
+            return String.format("[Port: %d, EndpointListener: %d, Connected: %b]",socket.getPort(), getlistenerPort(), socket.isConnected());
+        } else {
+            return "Not connected";
+        }
+
     }
 
 }
