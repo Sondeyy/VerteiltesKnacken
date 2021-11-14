@@ -3,23 +3,32 @@ package de.dhbw;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConnectionHandler implements Runnable {
     private final Worker worker; // the parent worker of the ConnectionHandler thread
-    private boolean active = true;
+    private AtomicBoolean active = new AtomicBoolean(true);
+    ServerSocket server = null;
 
     public ConnectionHandler(Worker worker) {
         this.worker = worker;
     }
 
     public void turnOff() {
-        this.active = false;
+        this.active.set(false);
+
+        // close socketserver
+        try {
+            this.server.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void run() {
-        ServerSocket server = null;
         try {
             Logger.log("Opening Serversocket on port: ".concat(Integer.toString(worker.getListenerPort())));
             server = new ServerSocket(worker.getListenerPort(), 100, worker.getMyAddress());
@@ -27,7 +36,7 @@ public class ConnectionHandler implements Runnable {
             e.printStackTrace();
             Logger.log("Failed to connect Serversocket on Port: ".concat(Integer.toString(worker.getListenerPort())));
         }
-        while (active) {
+        while (active.get()) {
             try {
                 Socket newSocket = Objects.requireNonNull(server).accept();
                 Connection newConnection = new Connection(newSocket);
@@ -37,7 +46,7 @@ public class ConnectionHandler implements Runnable {
                 worker.appendConnection(newConnection);
                 Logger.log("Connection Established!");
             } catch (IOException e) {
-                e.printStackTrace();
+                // everything fine
             }
         }
         try {
