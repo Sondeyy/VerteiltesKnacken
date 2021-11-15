@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -17,7 +16,7 @@ public class Worker implements Runnable {
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     // private final Qeuue broadcasts;
     // todo: own thread for broadcasts ?
-    private HashMap<String,Object> decryptRequestInformation;
+    private RSAPayload decryptRequestInformation;
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
     private States state = States.INIT;
@@ -109,29 +108,36 @@ public class Worker implements Runnable {
         }
     }
 
+    public void ifConnectedToClientSendAnswer(DecryptPayload solution){
+        for (Connection connection : connections) {
+            if(connection.getRole() == Role.CLIENT){
+                Message solution_message = new Message();
+                solution_message.setType(MessageType.ANSWER_FOUND);
+                solution_message.setPayload(solution);
+                connection.write(solution_message);
+            }
+        }
+    }
+
     private void reactToMessage(Message message, Connection connection) {
         MessageType messageType = message.getType();
         Message answer = new Message();
 
         if(messageType == MessageType.RSA){
+            // unpack the RSA Message and save it
+            RSAPayload payload = (RSAPayload) message.getPayload();
+            this.decryptRequestInformation = payload;
 
-            // mark connection as client
+            // mark connection as client and set Listener port
             connection.setRole(Role.CLIENT);
+            connection.setListenerPort(payload.listenerPort);
 
             // broadcast START Message to nodes in cluster to init calculation
             answer.setType(MessageType.START);
-
-            // append the client ip and port to the payload
-            HashMap<String,Object> payload = (HashMap<String, Object>) message.getPayload();
-            payload.put("client_ip", connection.getAddress());
-            // todo: ListenerPort ?
-            payload.put("client_port", connection.getlistenerPort());
             answer.setPayload(payload);
-
-            // save hashmap with public key and client information
-            decryptRequestInformation = payload;
-
             broadcast(answer);
+
+            // todo: start calculation
 
         } else if(messageType == MessageType.JOIN){
 
@@ -170,7 +176,13 @@ public class Worker implements Runnable {
             // add solution to solution array
 
         } else if (messageType == MessageType.ANSWER_FOUND) {
+            // fetch message payload
+            DecryptPayload solution = (DecryptPayload) message.getPayload();
 
+            // stop calculation
+
+            // if connected to client, send him ANSWER FOUND message with prime numbers
+            ifConnectedToClientSendAnswer(solution);
         } else if (messageType == MessageType.FREE) {
 
         }
