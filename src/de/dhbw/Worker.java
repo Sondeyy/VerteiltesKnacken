@@ -1,9 +1,14 @@
 package de.dhbw;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -21,21 +26,51 @@ public class Worker implements Runnable {
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
     private States state = States.INIT;
+    private final ArrayList<BigInteger> primes = new ArrayList<>();
     private boolean first_node = false;
 
     // state machine ?
 
-    public Worker(int ListenerPort, InetAddress myAddress){
+    public Worker(int ListenerPort, InetAddress myAddress, int primeRange){
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.first_node = true;
+
+        this.readPrimesFromFile(primeRange);
+
     }
 
-    public Worker(int ListenerPort, InetAddress myAddress, int initPort , InetAddress initAddress) {
+    public Worker(int ListenerPort, InetAddress myAddress, int initPort , InetAddress initAddress, int primeRange) {
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.initAddress = initAddress;
         this.initPort = initPort;
+
+        this.readPrimesFromFile(primeRange);
+    }
+
+    private void readPrimesFromFile(int range) {
+        String basePath = new File("").getAbsolutePath();
+        String file = basePath.concat("/rc/".concat(String.valueOf(range).concat(".txt")));
+
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+
+            while (line != null) {
+                this.primes.add(new BigInteger(line));
+                line = br.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                Objects.requireNonNull(br).close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void appendConnection(Connection connection) {

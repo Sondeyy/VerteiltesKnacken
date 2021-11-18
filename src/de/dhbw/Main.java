@@ -14,21 +14,23 @@ public class Main {
         int port_W3 = 23000;
         int port_W4 = 22000;
 
+        int primeRange = 100;
+
         // Initialize Workers
 
-        Worker worker1 = new Worker(port_W1, localhost_ip);
+        Worker worker1 = new Worker(port_W1, localhost_ip, primeRange);
         Thread worker1Thread = new Thread(worker1);
         worker1Thread.setName("Worker 1");
 
-        Worker worker2 = new Worker(port_W2, localhost_ip, port_W1, localhost_ip);
+        Worker worker2 = new Worker(port_W2, localhost_ip, port_W1, localhost_ip, primeRange);
         Thread worker2Thread = new Thread(worker2);
         worker2Thread.setName("Worker 2");
 
-        Worker worker3 = new Worker(port_W3, localhost_ip, port_W1, localhost_ip);
+        Worker worker3 = new Worker(port_W3, localhost_ip, port_W1, localhost_ip, primeRange);
         Thread worker3Thread = new Thread(worker3);
         worker3Thread.setName("Worker 3");
 
-        Worker worker4 = new Worker(port_W4, localhost_ip, port_W2, localhost_ip);
+        Worker worker4 = new Worker(port_W4, localhost_ip, port_W2, localhost_ip, primeRange);
         Thread worker4Thread = new Thread(worker4);
         worker4Thread.setName("Worker 4");
 
