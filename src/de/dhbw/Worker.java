@@ -1,5 +1,7 @@
 package de.dhbw;
 
+import de.dhbw.examhelpers.rsa.PrimeRange;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -8,6 +10,7 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -71,6 +74,48 @@ public class Worker implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private PrimeRange selectPrimeRange() {
+        int primesAvailable = primes.size();
+
+        ArrayList<Integer> workerPorts = new ArrayList<>();
+
+        // TODO need to differ based on ports, when running on one device, but on hostname, when on multiple
+        for (Connection connection : connections) {
+            if (connection.getRole() == Role.WORKER)  {
+                workerPorts.add(connection.getlistenerPort());
+            }
+        }
+
+        int workersAvailable = workerPorts.size();
+
+        // TODO test and check if this makes sense at all -> prototype version
+
+        workerPorts.add(this.listenerPort);
+        workerPorts.sort(Comparator.naturalOrder());
+        int myPlace = workerPorts.indexOf(this.listenerPort);
+
+        int startIndex = myPlace * (primesAvailable / workersAvailable);
+        int endIndex = (myPlace + 1) * (primesAvailable / workersAvailable);
+
+        BigInteger startPrime = primes.get(startIndex);
+        BigInteger endPrime = primes.get(endIndex);
+
+        return new PrimeRange(startPrime, endPrime);
+
+    }
+
+    private void askForPrimeRange() {
+        PrimeRange primeRange = this.selectPrimeRange();
+        this.state = States.WAIT_FOR_OK;
+
+        Message request = new Message();
+
+        request.setType(MessageType.FREE);
+        request.setPayload(primeRange);
+
+        this.broadcast(request);
     }
 
     public void appendConnection(Connection connection) {
@@ -207,14 +252,14 @@ public class Worker implements Runnable {
 
             } case OK -> {
                 // check if section accepted equals section requested
-                if (this.state == States.WAIT_FOR_RESOURCE) {
+                if (this.state == States.WAIT_FOR_OK) {
                     // I am allowed to calc
                 }
                 // else
                 // maybe some other worker is down -> wait some random time
                 // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
             } case NOK -> {
-                if (!(this.state == States.WAIT_FOR_RESOURCE)) {
+                if (!(this.state == States.WAIT_FOR_OK)) {
                     // I am not allowed to calc
                 }
                 // doesn't bother me
