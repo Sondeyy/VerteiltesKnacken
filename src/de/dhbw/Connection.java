@@ -8,7 +8,7 @@ import java.net.Socket;
  * This class represents a single connection
  */
 public class Connection implements Serializable{
-    transient private Socket socket;
+    final transient private Socket socket;
     private Role role = Role.UNKNOWN;
     private int ListenerPort;
     private final InetAddress address;

@@ -13,6 +13,7 @@ public class Worker implements Runnable {
     private int initPort = 0;
     private InetAddress initAddress = null;
 
+    // todo: maybe change back to ConcurrentHashmap
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     // private final Qeuue broadcasts;
     // todo: own thread for broadcasts ?
@@ -120,71 +121,82 @@ public class Worker implements Runnable {
     }
 
     private void reactToMessage(Message message, Connection connection) {
-        MessageType messageType = message.getType();
+
         Message answer = new Message();
 
-        if(messageType == MessageType.RSA){
-            // unpack the RSA Message and save it
-            RSAPayload payload = (RSAPayload) message.getPayload();
-            this.decryptRequestInformation = payload;
+        // handle messages based on their messageType
+        switch (message.getType()) {
+            case RSA -> {
+                // unpack the RSA Message and save it
+                RSAPayload payload = (RSAPayload) message.getPayload();
+                this.decryptRequestInformation = payload;
 
-            // mark connection as client and set Listener port
-            connection.setRole(Role.CLIENT);
-            connection.setListenerPort(payload.listenerPort);
+                // mark connection as client and set Listener port
+                connection.setRole(Role.CLIENT);
+                connection.setListenerPort(payload.listenerPort);
 
-            // broadcast START Message to nodes in cluster to init calculation
-            answer.setType(MessageType.START);
-            answer.setPayload(payload);
-            broadcast(answer);
+                // broadcast RSA Message to all nodes in cluster to init calculation
+                message.setType(MessageType.START);
+                broadcast(message);
 
-            // todo: start calculation
+                // todo: start own calculation
 
-        } else if(messageType == MessageType.JOIN){
+            } case JOIN -> {
+                // send new worker a List of all nodes in the cluster --> without clients
 
-            // send new worker a List of all nodes in the cluster --> without clients
-            ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
-            answer.setPayload(clusterInfo);
-            answer.setType(MessageType.CLUSTER_INFO);
-            connection.write(answer);
+                ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
+                answer.setPayload(clusterInfo);
+                answer.setType(MessageType.CLUSTER_INFO);
+                connection.write(answer);
 
-        } else if(messageType == MessageType.CONNECT_CLUSTER) {
-            // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
-            WorkerInfo connection_info = (WorkerInfo) message.getPayload();
-            connection.setListenerPort(connection_info.listenerPort);
+            } case CONNECT_CLUSTER -> {
+                // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
+                WorkerInfo connection_info = (WorkerInfo) message.getPayload();
+                connection.setListenerPort(connection_info.listenerPort);
 
-            // connection is already established, set role from UNKNOWN to WORKER
-            connection.setRole(Role.WORKER);
+                // Set role from UNKNOWN to WORKER
+                connection.setRole(Role.WORKER);
 
-        } else if(messageType == MessageType.CLUSTER_INFO){
+            } case CLUSTER_INFO -> {
 
-            //
+                // obsolete ? --> just handle in main run loop
 
-        } else if (messageType == MessageType.OK) {
-            // check if section accepted equals section requested
-            if (this.state == States.WAIT_FOR_RESOURCE) {
-                // I am allowed to calc
+            } case START -> {
+                // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
+                // key and to start the calculation
+
+                // unpack the RSA Message and save it
+                this.decryptRequestInformation = (RSAPayload) message.getPayload();
+
+                // todo: start calculation
+
+            } case OK -> {
+                // check if section accepted equals section requested
+                if (this.state == States.WAIT_FOR_RESOURCE) {
+                    // I am allowed to calc
+                }
+                // else
+                // maybe some other worker is down -> wait some random time
+                // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
+            } case NOK -> {
+                if (!(this.state == States.WAIT_FOR_RESOURCE)) {
+                    // I am not allowed to calc
+                }
+                // doesn't bother me
+            } case FINISHED -> {
+                // add solution to solution array
+
+            } case ANSWER_FOUND -> {
+                // fetch message payload
+                DecryptPayload solution = (DecryptPayload) message.getPayload();
+
+                // stop calculation
+
+                // if connected to client, send him ANSWER FOUND message with prime numbers
+                ifConnectedToClientSendAnswer(solution);
+            } case FREE -> {
+
             }
-            // else
-            // maybe some other worker is down -> wait some random time
-            // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
-        } else if (messageType == MessageType.NOK) {
-            if (this.state == States.WAIT_FOR_RESOURCE) {
-                // I am not allowed to calc
-            }
-            // doesn't bother me
-        } else if (messageType == MessageType.FINISHED) {
-            // add solution to solution array
-
-        } else if (messageType == MessageType.ANSWER_FOUND) {
-            // fetch message payload
-            DecryptPayload solution = (DecryptPayload) message.getPayload();
-
-            // stop calculation
-
-            // if connected to client, send him ANSWER FOUND message with prime numbers
-            ifConnectedToClientSendAnswer(solution);
-        } else if (messageType == MessageType.FREE) {
-
         }
     }
 
@@ -238,7 +250,7 @@ public class Worker implements Runnable {
         while (active.get()) {
             // get work --> FINISHED_TASK
 
-            // check client and worker messages
+            // handle client and worker messages
             for (Connection connection : connections) {
                 if (connection.available()) {
                     Message newMessage = connection.read();

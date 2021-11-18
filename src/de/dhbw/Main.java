@@ -37,6 +37,7 @@ public class Main {
         client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5");
         client.setPublicKey("268342277565109549360836262560222031507");
         Thread clientThread = new Thread(client);
+        clientThread.setName("Client");
 
         System.out.println("--------------- start T1 -------------");
         worker1Thread.start();

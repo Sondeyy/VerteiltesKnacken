@@ -1,8 +1,9 @@
 package de.dhbw;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 
-public class RSAPayload {
+public class RSAPayload implements Serializable {
     public final int listenerPort;
     public final InetAddress address;
     public final String publicKey;
