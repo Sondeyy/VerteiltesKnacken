@@ -29,7 +29,7 @@ public class Worker implements Runnable {
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
     private States state = States.INIT;
-    private final ArrayList<BigInteger> primes = new ArrayList<>();
+    private final ArrayList<String> primes = new ArrayList<>();
     private boolean first_node = false;
 
     // state machine ?
@@ -62,7 +62,7 @@ public class Worker implements Runnable {
             String line = br.readLine();
 
             while (line != null) {
-                this.primes.add(new BigInteger(line));
+                this.primes.add(line);
                 line = br.readLine();
             }
         } catch (IOException e) {
@@ -76,7 +76,7 @@ public class Worker implements Runnable {
         }
     }
 
-    private PrimeRange selectPrimeRange() {
+    private int selectPrimeRange() {
         int primesAvailable = primes.size();
 
         ArrayList<Integer> workerPorts = new ArrayList<>();
@@ -97,23 +97,19 @@ public class Worker implements Runnable {
         int myPlace = workerPorts.indexOf(this.listenerPort);
 
         int startIndex = myPlace * (primesAvailable / workersAvailable);
-        int endIndex = (myPlace + 1) * (primesAvailable / workersAvailable);
 
-        BigInteger startPrime = primes.get(startIndex);
-        BigInteger endPrime = primes.get(endIndex);
-
-        return new PrimeRange(startPrime, endPrime);
+        return startIndex;
 
     }
 
     private void askForPrimeRange() {
-        PrimeRange primeRange = this.selectPrimeRange();
+        int startIndex = this.selectPrimeRange();
         this.state = States.WAIT_FOR_OK;
 
         Message request = new Message();
 
         request.setType(MessageType.FREE);
-        request.setPayload(primeRange);
+        request.setPayload(startIndex);
 
         this.broadcast(request);
     }
