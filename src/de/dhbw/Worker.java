@@ -27,9 +27,10 @@ public class Worker implements Runnable {
     private int okCount = 0;
     private States state = States.INIT;
     private final ArrayList<String> primes = new ArrayList<>();
+    private final ArrayList<Integer> primeIndexesCalculated = new ArrayList<>();
     private boolean first_node = false;
     private int startIndex;
-    private int segmentSize;
+    private final int segmentSize;
     private PrimeCalculation primeCalculation;
 
     // state machine ?
@@ -54,6 +55,9 @@ public class Worker implements Runnable {
         this.readPrimesFromFile(primeRange);
     }
 
+    /**
+     * @param range number of primes
+     */
     private void readPrimesFromFile(int range) {
         String basePath = new File("").getAbsolutePath();
         String file = basePath.concat("/rc/".concat(String.valueOf(range).concat(".txt")));
@@ -78,6 +82,9 @@ public class Worker implements Runnable {
         }
     }
 
+    /**
+     * @return startIndex of the prime segment selected
+     */
     private int selectPrimeRange() {
         int primesAvailable = primes.size();
 
@@ -90,19 +97,22 @@ public class Worker implements Runnable {
             }
         }
 
-        int workersAvailable = workerPorts.size();
-
         // TODO test and check if this makes sense at all -> prototype version
 
         workerPorts.add(this.listenerPort);
         workerPorts.sort(Comparator.naturalOrder());
         int myPlace = workerPorts.indexOf(this.listenerPort);
 
-        int startIndex = myPlace * (primesAvailable / workersAvailable);
+        int startIndex = this.segmentSize * myPlace;
+
+        if (startIndex > primesAvailable) startIndex = 0; // first come, first served
 
         return startIndex;
     }
 
+    /**
+     * select prime range, broadcast FREE to the cluster
+     */
     private void askForPrimeRange() {
         this.startIndex = this.selectPrimeRange();
         this.state = States.WAIT_FOR_OK;
@@ -115,6 +125,9 @@ public class Worker implements Runnable {
         this.broadcast(request);
     }
 
+    /**
+     * Start a new Calculation in an extra thread
+     */
     private void startCalculation() {
         this.primeCalculation = new PrimeCalculation(
                 this.startIndex,
@@ -209,6 +222,11 @@ public class Worker implements Runnable {
         }
     }
 
+    /**
+     * React to incoming message based on type
+     * @param message message to which worker should react
+     * @param connection connection the message came from
+     */
     private void reactToMessage(Message message, Connection connection) {
 
         Message answer = new Message();
@@ -228,7 +246,7 @@ public class Worker implements Runnable {
                 message.setType(MessageType.START);
                 broadcast(message);
 
-                // todo: start own calculation
+                this.askForPrimeRange();
 
             }
             case JOIN -> {
@@ -257,17 +275,20 @@ public class Worker implements Runnable {
             case START -> {
                 // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
                 // key and to start the calculation
-
                 // unpack the RSA Message and save it
                 this.decryptRequestInformation = (RSAPayload) message.getPayload();
 
-                // todo: start calculation
-
+                this.askForPrimeRange();
             }
             case OK -> {
                 // check if section accepted equals section requested
                 if (this.state == States.WAIT_FOR_OK) {
-                    // I am allowed to calc
+                    this.okCount++;
+
+                    if (this.okCount == this.getWorkerCount()) {
+                        // I am allowed to calculate!
+                        this.startCalculation();
+                    }
                 }
                 // else
                 // maybe some other worker is down -> wait some random time
@@ -275,7 +296,8 @@ public class Worker implements Runnable {
             }
             case NOK -> {
                 if (!(this.state == States.WAIT_FOR_OK)) {
-                    // I am not allowed to calc
+                    this.state = States.FINISHED_TASK;
+                    this.askForPrimeRange();
                 }
                 // doesn't bother me
             }
@@ -289,11 +311,20 @@ public class Worker implements Runnable {
 
                 // stop calculation
 
+
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 ifConnectedToClientSendAnswer(solution);
             }
             case FREE -> {
-
+                if (this.state == States.WORKING) {
+                    if (this.startIndex == (Integer) message.getPayload()) {
+                        answer.setType(MessageType.NOK);
+                        connection.write(answer);
+                        return;
+                    }
+                }
+                answer.setType(MessageType.OK);
+                connection.write(answer);
             }
         }
     }
@@ -385,8 +416,15 @@ public class Worker implements Runnable {
         Logger.log("SUCCESSFULLY CLOSED");
     }
 
+    /**
+     * broadcasts found result to the cluster
+     * @param result result to be broadcasted
+     */
     private void sendResult(PrimeCalculationResult result) {
-        // TODO
+        Message resultMessage = new Message();
+        resultMessage.setType(MessageType.ANSWER_FOUND);
+        resultMessage.setPayload(result);
+        this.broadcast(resultMessage);
     }
 
     // getters and setters
@@ -401,6 +439,14 @@ public class Worker implements Runnable {
 
     public CopyOnWriteArrayList<Connection> getConnections() {
         return connections;
+    }
+
+    private int getWorkerCount() {
+        int workerCount = 0;
+        for (Connection connection : connections) {
+            if (connection.getRole() != Role.CLIENT) workerCount++;
+        }
+        return workerCount;
     }
 
     public void close() {
