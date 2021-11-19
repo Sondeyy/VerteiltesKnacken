@@ -1,12 +1,9 @@
 package de.dhbw;
 
-import de.dhbw.examhelpers.rsa.PrimeRange;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -23,7 +20,7 @@ public class Worker implements Runnable {
 
     // todo: maybe change back to ConcurrentHashmap
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
-    // private final Qeuue broadcasts;
+    // private final Queue broadcasts;
     // todo: own thread for broadcasts ?
     private RSAPayload decryptRequestInformation;
     private final AtomicBoolean active = new AtomicBoolean(true);
@@ -31,23 +28,28 @@ public class Worker implements Runnable {
     private States state = States.INIT;
     private final ArrayList<String> primes = new ArrayList<>();
     private boolean first_node = false;
+    private int startIndex;
+    private int segmentSize;
+    private PrimeCalculation primeCalculation;
 
     // state machine ?
 
-    public Worker(int ListenerPort, InetAddress myAddress, int primeRange){
+    public Worker(int ListenerPort, InetAddress myAddress, int primeRange, int segmentSize) {
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.first_node = true;
+        this.segmentSize = segmentSize;
 
         this.readPrimesFromFile(primeRange);
 
     }
 
-    public Worker(int ListenerPort, InetAddress myAddress, int initPort , InetAddress initAddress, int primeRange) {
+    public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int segmentSize) {
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.initAddress = initAddress;
         this.initPort = initPort;
+        this.segmentSize = segmentSize;
 
         this.readPrimesFromFile(primeRange);
     }
@@ -83,7 +85,7 @@ public class Worker implements Runnable {
 
         // TODO need to differ based on ports, when running on one device, but on hostname, when on multiple
         for (Connection connection : connections) {
-            if (connection.getRole() == Role.WORKER)  {
+            if (connection.getRole() == Role.WORKER) {
                 workerPorts.add(connection.getlistenerPort());
             }
         }
@@ -99,11 +101,10 @@ public class Worker implements Runnable {
         int startIndex = myPlace * (primesAvailable / workersAvailable);
 
         return startIndex;
-
     }
 
     private void askForPrimeRange() {
-        int startIndex = this.selectPrimeRange();
+        this.startIndex = this.selectPrimeRange();
         this.state = States.WAIT_FOR_OK;
 
         Message request = new Message();
@@ -114,11 +115,23 @@ public class Worker implements Runnable {
         this.broadcast(request);
     }
 
+    private void startCalculation() {
+        this.primeCalculation = new PrimeCalculation(
+                this.startIndex,
+                this.decryptRequestInformation.publicKey,
+                this.primes,
+                this.segmentSize
+        );
+
+        Thread primeCalculationThread = new Thread(primeCalculation);
+        primeCalculationThread.start();
+    }
+
     public void appendConnection(Connection connection) {
         connections.add(connection);
     }
 
-    public Connection connectTo(InetAddress address, int port){
+    public Connection connectTo(InetAddress address, int port) {
         Socket socket;
         try {
             // make a new socket on "myPort"
@@ -138,7 +151,7 @@ public class Worker implements Runnable {
         }
     }
 
-    public Connection requestClusterJoin(InetAddress address, int port){
+    public Connection requestClusterJoin(InetAddress address, int port) {
         Logger.log("JOIN CLUSTER VIA: ".concat(address.toString()).concat(":").concat(Integer.toString(port)));
 
         // connect to arbitrary node in cluster
@@ -154,7 +167,7 @@ public class Worker implements Runnable {
         return initial_connection;
     }
 
-    public void joinCluster(ArrayList<WorkerInfo> clusterInfo){
+    public void joinCluster(ArrayList<WorkerInfo> clusterInfo) {
         // clusterInfo contains all workers except the one connected to
         // establish connections with all workers in cluster
         for (WorkerInfo worker : clusterInfo) {
@@ -173,21 +186,21 @@ public class Worker implements Runnable {
         broadcast(connect_cluster_request);
     }
 
-    public void broadcast(Message message){
+    public void broadcast(Message message) {
         // todo: Outsource to own Thread ?
         Logger.log("Broadcasting message: ".concat(message.toString()));
         // broadcast message to every connection of node workers
 
         for (Connection connection : connections) {
-            if(connection.getRole() == Role.WORKER){
+            if (connection.getRole() == Role.WORKER) {
                 connection.write(message);
             }
         }
     }
 
-    public void ifConnectedToClientSendAnswer(DecryptPayload solution){
+    public void ifConnectedToClientSendAnswer(PrimeCalculationResult solution) {
         for (Connection connection : connections) {
-            if(connection.getRole() == Role.CLIENT){
+            if (connection.getRole() == Role.CLIENT) {
                 Message solution_message = new Message();
                 solution_message.setType(MessageType.ANSWER_FOUND);
                 solution_message.setPayload(solution);
@@ -217,7 +230,8 @@ public class Worker implements Runnable {
 
                 // todo: start own calculation
 
-            } case JOIN -> {
+            }
+            case JOIN -> {
                 // send new worker a List of all nodes in the cluster --> without clients
 
                 ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
@@ -225,7 +239,8 @@ public class Worker implements Runnable {
                 answer.setType(MessageType.CLUSTER_INFO);
                 connection.write(answer);
 
-            } case CONNECT_CLUSTER -> {
+            }
+            case CONNECT_CLUSTER -> {
                 // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
                 WorkerInfo connection_info = (WorkerInfo) message.getPayload();
                 connection.setListenerPort(connection_info.listenerPort);
@@ -233,11 +248,13 @@ public class Worker implements Runnable {
                 // Set role from UNKNOWN to WORKER
                 connection.setRole(Role.WORKER);
 
-            } case CLUSTER_INFO -> {
+            }
+            case CLUSTER_INFO -> {
 
                 // obsolete ? --> just handle in main run loop
 
-            } case START -> {
+            }
+            case START -> {
                 // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
                 // key and to start the calculation
 
@@ -246,7 +263,8 @@ public class Worker implements Runnable {
 
                 // todo: start calculation
 
-            } case OK -> {
+            }
+            case OK -> {
                 // check if section accepted equals section requested
                 if (this.state == States.WAIT_FOR_OK) {
                     // I am allowed to calc
@@ -254,33 +272,37 @@ public class Worker implements Runnable {
                 // else
                 // maybe some other worker is down -> wait some random time
                 // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
-            } case NOK -> {
+            }
+            case NOK -> {
                 if (!(this.state == States.WAIT_FOR_OK)) {
                     // I am not allowed to calc
                 }
                 // doesn't bother me
-            } case FINISHED -> {
+            }
+            case FINISHED -> {
                 // add solution to solution array
 
-            } case ANSWER_FOUND -> {
+            }
+            case ANSWER_FOUND -> {
                 // fetch message payload
-                DecryptPayload solution = (DecryptPayload) message.getPayload();
+                PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
 
                 // stop calculation
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 ifConnectedToClientSendAnswer(solution);
-            } case FREE -> {
+            }
+            case FREE -> {
 
             }
         }
     }
 
-    private ArrayList<WorkerInfo> getClusterInfo(){
+    private ArrayList<WorkerInfo> getClusterInfo() {
         ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
 
         for (Connection connection : connections) {
-            if(connection.getRole() == Role.WORKER){
+            if (connection.getRole() == Role.WORKER) {
                 WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
                 cluster_nodes.add(worker);
             }
@@ -300,12 +322,12 @@ public class Worker implements Runnable {
         connectionHandlerThread.start();
 
         // connect to the cluster if I am not the first node
-        if(!first_node){
+        if (!first_node) {
             Connection initial_connection = requestClusterJoin(initAddress, initPort);
 
             boolean connectionEstablished = false;
             do {
-                if(initial_connection.available()){
+                if (initial_connection.available()) {
 
                     Message response = initial_connection.read();
                     ArrayList<WorkerInfo> clusterInfo = (ArrayList<WorkerInfo>) response.getPayload();
@@ -334,6 +356,17 @@ public class Worker implements Runnable {
                     reactToMessage(newMessage, connection);
                 }
             }
+
+            // check if PrimeCalculation came to an end
+            if (this.primeCalculation.getResult() != null) {
+                if (this.primeCalculation.getResult().found) {
+                    this.sendResult(this.primeCalculation.getResult());
+                }
+                else {
+                    this.state = States.FINISHED_TASK;
+                    this.askForPrimeRange();
+                }
+            }
         }
 
         // close connectionHandler Thread
@@ -352,13 +385,17 @@ public class Worker implements Runnable {
         Logger.log("SUCCESSFULLY CLOSED");
     }
 
+    private void sendResult(PrimeCalculationResult result) {
+        // TODO
+    }
+
     // getters and setters
 
     public int getListenerPort() {
         return listenerPort;
     }
 
-    public InetAddress getMyAddress(){
+    public InetAddress getMyAddress() {
         return myAddress;
     }
 
@@ -366,7 +403,7 @@ public class Worker implements Runnable {
         return connections;
     }
 
-    public void close(){
+    public void close() {
         this.active.set(false);
     }
 }

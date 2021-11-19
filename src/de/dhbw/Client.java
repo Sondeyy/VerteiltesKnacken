@@ -5,7 +5,6 @@ import de.dhbw.examhelpers.rsa.RSAHelper;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Client implements Runnable {
@@ -81,7 +80,7 @@ public class Client implements Runnable {
 
                 if (answer.getType() == MessageType.ANSWER_FOUND) {
                     Logger.log("Received solution: ".concat(answer.toString()));
-                    DecryptPayload solution = (DecryptPayload) answer.getPayload();
+                    PrimeCalculationResult solution = (PrimeCalculationResult) answer.getPayload();
 
                     if(helper.isValid(solution.p,solution.q,publicKey)){
                         String decryptedText = helper.decrypt(solution.p, solution.q, chiffre);
