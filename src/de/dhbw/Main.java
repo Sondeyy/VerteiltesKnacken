@@ -38,8 +38,10 @@ public class Main {
 
         // init Client
         Client client = new Client(21000, localhost_ip, 25000, localhost_ip );
-        client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5");
-        client.setPublicKey("268342277565109549360836262560222031507");
+        //client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5");
+        client.setChiffre("b4820013b07bf8513ee59a905039fb631203c8b38ca3d59b475b4e4e092d3979");
+        //client.setPublicKey("268342277565109549360836262560222031507");
+        client.setPublicKey("298874689697528581074572362022003292763");
         Thread clientThread = new Thread(client);
         clientThread.setName("Client");
 
@@ -59,38 +61,13 @@ public class Main {
         clientThread.start();
         Thread.sleep(200);
 
-        // DEBUGGING
-        Thread.sleep(1000);
-        System.out.println("---------- Connections ----------------");
-        System.out.println("Worker1: ".concat(worker1.getConnections().toString()));
-        System.out.println("Worker2: ".concat(worker2.getConnections().toString()));
-        System.out.println("Worker3: ".concat(worker3.getConnections().toString()));
-        System.out.println("Worker4: ".concat(worker4.getConnections().toString()));
-        System.out.println("---------- Broadcast Test ---------------");
-
-        Message test = new Message();
-        test.setType(MessageType.HELLO);
-        test.setPayload("TESSSTT");
-        worker1.broadcast(test);
-        worker2.broadcast(test);
-        worker3.broadcast(test);
-        worker4.broadcast(test);
-
-        Thread.sleep(2000);
-
-        System.out.println("-------- Killing all Threads ---------");
-
-        worker1.close();
-        worker2.close();
-        worker3.close();
-        worker4.close();
-        
         try {
             // clientThread.join();
             worker1Thread.join();
             worker2Thread.join();
             worker3Thread.join();
             worker4Thread.join();
+            clientThread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

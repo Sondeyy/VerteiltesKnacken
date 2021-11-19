@@ -12,7 +12,7 @@ public class PrimeCalculation implements Runnable {
     private final int segmentSize;
     private final String publicKey;
     private final ArrayList<String> primes;
-    private volatile PrimeCalculationResult result;
+    private volatile PrimeCalculationResult result = null;
 
     public PrimeCalculation(int startIndex, String publicKey, ArrayList<String> primes, int segmentSize) {
         this.startIndex = startIndex;
@@ -34,6 +34,7 @@ public class PrimeCalculation implements Runnable {
 
                 if (helper.isValid(p, q, publicKey)) {
                     this.result = new PrimeCalculationResult(p, q);
+                    return;
                 }
             }
         }

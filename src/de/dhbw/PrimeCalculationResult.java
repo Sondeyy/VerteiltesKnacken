@@ -1,6 +1,8 @@
 package de.dhbw;
 
-public class PrimeCalculationResult {
+import java.io.Serializable;
+
+public class PrimeCalculationResult implements Serializable {
     public String p = null;
     public String q = null;
     public final boolean found;
@@ -17,6 +19,6 @@ public class PrimeCalculationResult {
 
     @Override
     public String toString() {
-        return String.format("(%s|%s)",p,q);
+        return String.format("(%s|%s)", p, q);
     }
 }

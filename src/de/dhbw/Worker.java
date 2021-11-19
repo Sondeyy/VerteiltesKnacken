@@ -22,16 +22,17 @@ public class Worker implements Runnable {
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     // private final Queue broadcasts;
     // todo: own thread for broadcasts ?
+    private boolean first_node = false;
     private RSAPayload decryptRequestInformation;
+    private States state = States.INIT;
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
-    private States state = States.INIT;
-    private final ArrayList<String> primes = new ArrayList<>();
-    private final ArrayList<Integer> primeIndexesCalculated = new ArrayList<>();
-    private boolean first_node = false;
+
     private int startIndex;
     private final int segmentSize;
-    private PrimeCalculation primeCalculation;
+    private PrimeCalculation primeCalculation = null;
+    private final ArrayList<String> primes = new ArrayList<>();
+    private final ArrayList<Integer> primeIndexesCalculated = new ArrayList<>();
 
     // state machine ?
 
@@ -314,6 +315,9 @@ public class Worker implements Runnable {
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 ifConnectedToClientSendAnswer(solution);
+
+                this.active.set(false);
+
             }
             case FREE -> {
                 if (this.state == States.WORKING) {
@@ -377,8 +381,6 @@ public class Worker implements Runnable {
         Logger.log("Connections: ".concat(connections.toString()));
 
         while (active.get()) {
-            // get work --> FINISHED_TASK
-
             // handle client and worker messages
             for (Connection connection : connections) {
                 if (connection.available()) {
@@ -387,17 +389,24 @@ public class Worker implements Runnable {
                     reactToMessage(newMessage, connection);
                 }
             }
-
             // check if PrimeCalculation came to an end
-            if (this.primeCalculation.getResult() != null) {
+            if (this.primeCalculation != null && this.primeCalculation.getResult() != null) {
                 if (this.primeCalculation.getResult().found) {
                     this.sendResult(this.primeCalculation.getResult());
+                    this.ifConnectedToClientSendAnswer(this.primeCalculation.getResult());
+                    break;
                 }
                 else {
                     this.state = States.FINISHED_TASK;
                     this.askForPrimeRange();
                 }
             }
+        }
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         // close connectionHandler Thread
