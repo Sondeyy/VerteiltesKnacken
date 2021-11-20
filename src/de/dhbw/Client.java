@@ -5,6 +5,8 @@ import de.dhbw.examhelpers.rsa.RSAHelper;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Client implements Runnable {
@@ -68,6 +70,7 @@ public class Client implements Runnable {
 
         // send publicKEy to cluster
         sendPublicKey(publicKey);
+        Instant startTime = Instant.now();
 
         // create decryption helper
         RSAHelper helper = new RSAHelper();

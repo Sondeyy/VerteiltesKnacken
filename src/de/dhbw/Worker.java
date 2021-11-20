@@ -6,9 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,29 +27,29 @@ public class Worker implements Runnable {
     private int okCount = 0;
 
     private int startIndex;
-    private final int segmentSize;
+    private final int initialCalculationCount;
     private PrimeCalculation primeCalculation = null;
     private final ArrayList<String> primes = new ArrayList<>();
     private final ArrayList<Integer> primeIndexesCalculated = new ArrayList<>();
 
     // state machine ?
 
-    public Worker(int ListenerPort, InetAddress myAddress, int primeRange, int segmentSize) {
+    public Worker(int ListenerPort, InetAddress myAddress, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.first_node = true;
-        this.segmentSize = segmentSize;
+        this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
 
     }
 
-    public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int segmentSize) {
+    public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
         this.myAddress = myAddress;
         this.initAddress = initAddress;
         this.initPort = initPort;
-        this.segmentSize = segmentSize;
+        this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
     }
@@ -81,34 +79,45 @@ public class Worker implements Runnable {
                 e.printStackTrace();
             }
         }
+        Logger.log(String.valueOf(this.primes.size()));
+
+        // todo: Comment
+        int sumIndices = 0;
+        int i = 0;
+        while (sumIndices < primes.size()) {
+            int segmentSize = calculateSegmentLength(sumIndices);
+            segmentSizes.add(segmentSize);
+            primeIndexByWindowIndex.add(sumIndices);
+
+            sumIndices += segmentSize;
+        }
+
+        // trim last segment size
+        segmentSizes.set(segmentSizes.size()-1, segmentSizes.get(segmentSizes.size()-1) - sumIndices - primes.size());
+
+        this.windowIndexesCalculated = new ArrayList<>(Collections.nCopies(this.segmentSizes.size(), 0));
     }
 
     /**
      * @return startIndex of the prime segment selected
      */
     private int selectPrimeRange() {
-        int primesAvailable = primes.size();
+        ArrayList<Integer> freeStartIndexes = new ArrayList<>();
 
-        ArrayList<Integer> workerPorts = new ArrayList<>();
-
-        // TODO need to differ based on ports, when running on one device, but on hostname, when on multiple
-        for (Connection connection : connections) {
-            if (connection.getRole() == Role.WORKER) {
-                workerPorts.add(connection.getlistenerPort());
-            }
+        int i = 0;
+        while (i < segmentSizes.size()) {
+            if (windowIndexesCalculated.get(i) == 0) freeStartIndexes.add(i);
+            i++;
         }
 
-        // TODO test and check if this makes sense at all -> prototype version
+        if (freeStartIndexes.size() > 0) {
+            int setIndex = ThreadLocalRandom.current().nextInt(0, freeStartIndexes.size());
+            return freeStartIndexes.get(setIndex);
+        }
+        else {
+            return 0;
+        }
 
-        workerPorts.add(this.listenerPort);
-        workerPorts.sort(Comparator.naturalOrder());
-        int myPlace = workerPorts.indexOf(this.listenerPort);
-
-        int startIndex = this.segmentSize * myPlace;
-
-        if (startIndex > primesAvailable) startIndex = 0; // first come, first served
-
-        return startIndex;
     }
 
     /**
@@ -131,10 +140,10 @@ public class Worker implements Runnable {
      */
     private void startCalculation() {
         this.primeCalculation = new PrimeCalculation(
-                this.startIndex,
+                this.primeIndexByWindowIndex.get(startIndex),
                 this.decryptRequestInformation.publicKey,
                 this.primes,
-                this.segmentSize
+                this.segmentSizes.get(startIndex)
         );
 
         Thread primeCalculationThread = new Thread(primeCalculation);
@@ -288,6 +297,7 @@ public class Worker implements Runnable {
 
                     if (this.okCount == this.getWorkerCount()) {
                         // I am allowed to calculate!
+                        this.okCount = 0;
                         this.startCalculation();
                     }
                 }
@@ -298,13 +308,15 @@ public class Worker implements Runnable {
             case NOK -> {
                 if (!(this.state == States.WAIT_FOR_OK)) {
                     this.state = States.FINISHED_TASK;
+                    this.okCount = 0;
                     this.askForPrimeRange();
                 }
                 // doesn't bother me
             }
             case FINISHED -> {
                 // add solution to solution array
-
+                int startIndexFromMessage = (Integer) message.getPayload();
+                this.windowIndexesCalculated.set(startIndexFromMessage, 1);
             }
             case ANSWER_FOUND -> {
                 // fetch message payload
@@ -320,7 +332,7 @@ public class Worker implements Runnable {
 
             }
             case FREE -> {
-                if (this.state == States.WORKING) {
+                if (this.state == States.WORKING || this.state == States.WAIT_FOR_OK) {
                     if (this.startIndex == (Integer) message.getPayload()) {
                         answer.setType(MessageType.NOK);
                         connection.write(answer);
@@ -397,7 +409,15 @@ public class Worker implements Runnable {
                     break;
                 }
                 else {
+                    Message finished = new Message();
+                    finished.setType(MessageType.FINISHED);
+                    finished.setPayload(this.startIndex);
+                    this.broadcast(finished);
+
+                    windowIndexesCalculated.set(startIndex, 1);
+
                     this.state = States.FINISHED_TASK;
+
                     this.askForPrimeRange();
                 }
             }
