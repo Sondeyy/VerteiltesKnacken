@@ -83,11 +83,15 @@ public class Client implements Runnable {
 
                 if (answer.getType() == MessageType.ANSWER_FOUND) {
                     Logger.log("Received solution: ".concat(answer.toString()));
+                    Logger.log("Percentage of segments: ".concat(String.valueOf(((PrimeCalculationResult) answer.getPayload()).percentageCalculated)));
                     PrimeCalculationResult solution = (PrimeCalculationResult) answer.getPayload();
 
                     if(helper.isValid(solution.p,solution.q,publicKey)){
                         String decryptedText = helper.decrypt(solution.p, solution.q, chiffre);
                         Logger.log("Decrypted Chiffre is: ".concat(decryptedText));
+
+                        Instant endTime = Instant.now();
+                        Logger.log("Calculation took: ".concat(String.valueOf(Duration.between(startTime, endTime).toSeconds())));
                     }else{
                         Logger.log("Solution is NOT valid!");
                     }

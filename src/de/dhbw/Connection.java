@@ -90,7 +90,6 @@ public class Connection implements Serializable{
     public synchronized void write(Message message){
         message.setReceiver(concatAddressPort(socket.getInetAddress(), socket.getPort()));
         try {
-            Logger.log("Write Message: ".concat(message.toString().concat("--> ").concat(Integer.toString(socket.getPort()))));
             this.objectOutputStream.writeInt(0);
             this.objectOutputStream.writeObject(message);
             this.objectOutputStream.flush();
@@ -122,5 +121,4 @@ public class Connection implements Serializable{
         }
 
     }
-
 }

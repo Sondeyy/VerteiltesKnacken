@@ -5,6 +5,7 @@ import java.io.Serializable;
 public class PrimeCalculationResult implements Serializable {
     public String p = null;
     public String q = null;
+    public double percentageCalculated;
     public final boolean found;
 
     public PrimeCalculationResult(String p, String q) {

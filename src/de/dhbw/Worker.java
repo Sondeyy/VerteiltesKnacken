@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Worker implements Runnable {
     private final int listenerPort;
@@ -30,7 +31,9 @@ public class Worker implements Runnable {
     private final int initialCalculationCount;
     private PrimeCalculation primeCalculation = null;
     private final ArrayList<String> primes = new ArrayList<>();
-    private final ArrayList<Integer> primeIndexesCalculated = new ArrayList<>();
+    private ArrayList<Integer> segmentSizes = new ArrayList<>();
+    private ArrayList<Integer> windowIndexesCalculated;
+    private final ArrayList<Integer> primeIndexByWindowIndex = new ArrayList<>();
 
     // state machine ?
 
@@ -99,6 +102,20 @@ public class Worker implements Runnable {
     }
 
     /**
+     *
+     * **/
+    private int calculateSegmentLength(int index){
+        int p = 0;
+        int n = this.primes.size();
+
+        while(p < initialCalculationCount){
+            p += n - index;
+            index++;
+        }
+        return index;
+    }
+
+    /**
      * @return startIndex of the prime segment selected
      */
     private int selectPrimeRange() {
@@ -139,6 +156,9 @@ public class Worker implements Runnable {
      * Start a new Calculation in an extra thread
      */
     private void startCalculation() {
+        Logger.log("STARTING CALCULATION ------");
+        this.state = States.WORKING;
+        
         this.primeCalculation = new PrimeCalculation(
                 this.primeIndexByWindowIndex.get(startIndex),
                 this.decryptRequestInformation.publicKey,
@@ -211,7 +231,7 @@ public class Worker implements Runnable {
 
     public void broadcast(Message message) {
         // todo: Outsource to own Thread ?
-        Logger.log("Broadcasting message: ".concat(message.toString()));
+        Logger.log("SENDING MESSAGE: ".concat(message.toString()));
         // broadcast message to every connection of node workers
 
         for (Connection connection : connections) {
@@ -226,6 +246,10 @@ public class Worker implements Runnable {
             if (connection.getRole() == Role.CLIENT) {
                 Message solution_message = new Message();
                 solution_message.setType(MessageType.ANSWER_FOUND);
+
+                double sumOfIndexes = (double) windowIndexesCalculated.stream().mapToInt(Integer::intValue).sum();
+                solution.percentageCalculated = sumOfIndexes / windowIndexesCalculated.size();
+
                 solution_message.setPayload(solution);
                 connection.write(solution_message);
             }
@@ -256,6 +280,7 @@ public class Worker implements Runnable {
                 message.setType(MessageType.START);
                 broadcast(message);
 
+                //
                 this.askForPrimeRange();
 
             }
@@ -296,6 +321,7 @@ public class Worker implements Runnable {
                     this.okCount++;
 
                     if (this.okCount == this.getWorkerCount()) {
+                        Logger.log("All OKS RECEIVED FOR ".concat(Integer.toString(startIndex)));
                         // I am allowed to calculate!
                         this.okCount = 0;
                         this.startCalculation();
@@ -397,7 +423,6 @@ public class Worker implements Runnable {
             for (Connection connection : connections) {
                 if (connection.available()) {
                     Message newMessage = connection.read();
-                    Logger.log("Data available: ".concat(newMessage.toString()));
                     reactToMessage(newMessage, connection);
                 }
             }
