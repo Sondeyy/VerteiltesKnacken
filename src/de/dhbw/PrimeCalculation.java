@@ -45,4 +45,9 @@ public class PrimeCalculation implements Runnable {
     public PrimeCalculationResult getResult() {
         return result;
     }
+
+    public void stopCalculation() {
+        this.result = new PrimeCalculationResult(false);
+    }
+
 }

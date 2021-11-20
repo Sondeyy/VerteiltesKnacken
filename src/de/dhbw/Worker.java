@@ -82,8 +82,6 @@ public class Worker implements Runnable {
                 e.printStackTrace();
             }
         }
-        Logger.log(String.valueOf(this.primes.size()));
-
         // todo: Comment
         int sumIndices = 0;
         int i = 0;
@@ -96,7 +94,9 @@ public class Worker implements Runnable {
         }
 
         // trim last segment size
-        segmentSizes.set(segmentSizes.size()-1, segmentSizes.get(segmentSizes.size()-1) - sumIndices - primes.size());
+        segmentSizes.set(segmentSizes.size()-1, segmentSizes.get(segmentSizes.size()-1) - sumIndices + primes.size());
+
+        Logger.log("Segment Sizes: ".concat(String.valueOf(segmentSizes)));
 
         this.windowIndexesCalculated = new ArrayList<>(Collections.nCopies(this.segmentSizes.size(), 0));
     }
@@ -156,7 +156,10 @@ public class Worker implements Runnable {
      * Start a new Calculation in an extra thread
      */
     private void startCalculation() {
-        Logger.log("STARTING CALCULATION ------");
+        double sumOfIndexes = (double) windowIndexesCalculated.stream().mapToInt(Integer::intValue).sum();
+        double percentageCalculated = sumOfIndexes / windowIndexesCalculated.size();
+
+        Logger.log("--- STARTING CALCULATION - ".concat(String.valueOf(percentageCalculated)));
         this.state = States.WORKING;
         
         this.primeCalculation = new PrimeCalculation(
@@ -349,10 +352,12 @@ public class Worker implements Runnable {
                 PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
 
                 // stop calculation
-
+                this.primeCalculation.stopCalculation();
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 ifConnectedToClientSendAnswer(solution);
+
+                this.state = States.FINISHED_TASK;
 
                 this.active.set(false);
 
