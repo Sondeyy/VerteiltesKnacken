@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ThreadLocalRandom;
+import java.lang.Math;
 
 public class Worker implements Runnable {
     private final int listenerPort;
@@ -31,9 +32,9 @@ public class Worker implements Runnable {
     private final int initialCalculationCount;
     private PrimeCalculation primeCalculation = null;
     private final ArrayList<String> primes = new ArrayList<>();
-    private ArrayList<Integer> segmentSizes = new ArrayList<>();
-    private ArrayList<Integer> windowIndexesCalculated;
-    private final ArrayList<Integer> primeIndexByWindowIndex = new ArrayList<>();
+    private final ArrayList<Integer> segmentSizes = new ArrayList<>();
+    private ArrayList<Integer> calculatedSegments;
+    private final ArrayList<Integer> segmentStartIndex = new ArrayList<>();
 
     // state machine ?
 
@@ -55,6 +56,8 @@ public class Worker implements Runnable {
         this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
+        // split up the tasks into
+        this.splitTask(primes.size(), initialCalculationCount);
     }
 
     /**
@@ -82,48 +85,63 @@ public class Worker implements Runnable {
                 e.printStackTrace();
             }
         }
-        // todo: Comment
-        int sumIndices = 0;
+    }
+
+    /**
+     * Split the given prime range into subtasks, that all have at least a certain number of calculations.
+     * This accounts for the shrinking number of needed calculations when using a fixed segments size by dynamically
+     * increasing the segment size for higher primes.
+     */
+    private void splitTask(int N, int calculations) {
+
         int i = 0;
-        while (sumIndices < primes.size()) {
-            int segmentSize = calculateSegmentLength(sumIndices);
+
+        while(i <= N-1){
+            // add the prime index that starts a given segment
+            segmentStartIndex.add(i);
+            // calculate the segment size by a given prime index
+            int segmentSize = segmentSize(i,N,calculations);
             segmentSizes.add(segmentSize);
-            primeIndexByWindowIndex.add(sumIndices);
 
-            sumIndices += segmentSize;
+            // get index of next segment
+            i = i + segmentSize;
         }
 
-        // trim last segment size
-        segmentSizes.set(segmentSizes.size()-1, segmentSizes.get(segmentSizes.size()-1) - sumIndices + primes.size());
+        // initialize bitmap for calculated segments
+        calculatedSegments = new ArrayList<>(Collections.nCopies(this.segmentSizes.size(), 0));
 
-        Logger.log("Segment Sizes: ".concat(String.valueOf(segmentSizes)));
-
-        this.windowIndexesCalculated = new ArrayList<>(Collections.nCopies(this.segmentSizes.size(), 0));
+        // Logging
+        Logger.log("Splitting Task:");
+        Logger.log("Start indices: ".concat(segmentStartIndex.toString()));
+        Logger.log("Segmentsizes: ".concat(segmentSizes.toString()));
+        Logger.log("Calculated Segemnts: ".concat(calculatedSegments.toString()));
     }
 
     /**
-     *
-     * **/
-    private int calculateSegmentLength(int index){
-        int p = 0;
-        int n = this.primes.size();
+     * Calculate the segment length for a given index, so that the segments has a total number of calculations between
+     * "calculations" and "calculations"+"N".
+     */
+    private int segmentSize(int i, int N, int calculations) {
+        double b = N - i + 0.5;
+        double discriminant = b*b - 2* calculations;
 
-        while(p < initialCalculationCount){
-            p += n - index;
-            index++;
+        if(discriminant >= 0){
+            return (int) Math.ceil(b - Math.sqrt(discriminant));
+        }else{
+            // return a segment size that i + segSize = N
+            return N - i;
         }
-        return index;
     }
 
     /**
-     * @return startIndex of the prime segment selected
+     * Randomly select a segment
      */
     private int selectPrimeRange() {
         ArrayList<Integer> freeStartIndexes = new ArrayList<>();
 
         int i = 0;
         while (i < segmentSizes.size()) {
-            if (windowIndexesCalculated.get(i) == 0) freeStartIndexes.add(i);
+            if (calculatedSegments.get(i) == 0) freeStartIndexes.add(i);
             i++;
         }
 
@@ -134,7 +152,6 @@ public class Worker implements Runnable {
         else {
             return 0;
         }
-
     }
 
     /**
@@ -156,14 +173,20 @@ public class Worker implements Runnable {
      * Start a new Calculation in an extra thread
      */
     private void startCalculation() {
-        double sumOfIndexes = (double) windowIndexesCalculated.stream().mapToInt(Integer::intValue).sum();
-        double percentageCalculated = sumOfIndexes / windowIndexesCalculated.size();
+        double percentageCalculated;
 
-        Logger.log("--- STARTING CALCULATION - ".concat(String.valueOf(percentageCalculated)));
+        try {
+            double sumOfIndexes = calculatedSegments.stream().mapToInt(Integer::intValue).sum();
+            percentageCalculated = sumOfIndexes / calculatedSegments.size() * 100;
+        } catch (NullPointerException e){
+            percentageCalculated = 0;
+        }
+
+        Logger.log("--- STARTING CALCULATION - ".concat(String.format("%.1f", percentageCalculated).concat(" %")));
         this.state = States.WORKING;
         
         this.primeCalculation = new PrimeCalculation(
-                this.primeIndexByWindowIndex.get(startIndex),
+                this.segmentStartIndex.get(startIndex),
                 this.decryptRequestInformation.publicKey,
                 this.primes,
                 this.segmentSizes.get(startIndex)
@@ -250,8 +273,8 @@ public class Worker implements Runnable {
                 Message solution_message = new Message();
                 solution_message.setType(MessageType.ANSWER_FOUND);
 
-                double sumOfIndexes = (double) windowIndexesCalculated.stream().mapToInt(Integer::intValue).sum();
-                solution.percentageCalculated = sumOfIndexes / windowIndexesCalculated.size();
+                double sumOfIndexes = (double) calculatedSegments.stream().mapToInt(Integer::intValue).sum();
+                solution.percentageCalculated = sumOfIndexes / calculatedSegments.size();
 
                 solution_message.setPayload(solution);
                 connection.write(solution_message);
@@ -323,6 +346,7 @@ public class Worker implements Runnable {
                 if (this.state == States.WAIT_FOR_OK) {
                     this.okCount++;
 
+                    // todo: What if one worker doesn´t respond ?
                     if (this.okCount == this.getWorkerCount()) {
                         Logger.log("All OKS RECEIVED FOR ".concat(Integer.toString(startIndex)));
                         // I am allowed to calculate!
@@ -345,7 +369,7 @@ public class Worker implements Runnable {
             case FINISHED -> {
                 // add solution to solution array
                 int startIndexFromMessage = (Integer) message.getPayload();
-                this.windowIndexesCalculated.set(startIndexFromMessage, 1);
+                this.calculatedSegments.set(startIndexFromMessage, 1);
             }
             case ANSWER_FOUND -> {
                 // fetch message payload
@@ -444,7 +468,7 @@ public class Worker implements Runnable {
                     finished.setPayload(this.startIndex);
                     this.broadcast(finished);
 
-                    windowIndexesCalculated.set(startIndex, 1);
+                    calculatedSegments.set(startIndex, 1);
 
                     this.state = States.FINISHED_TASK;
 

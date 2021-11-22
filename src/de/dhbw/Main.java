@@ -16,7 +16,7 @@ public class Main {
 
         int primeRange = 10000;
 
-        int initialCalculationCount = primeRange * 3;
+        int initialCalculationCount = primeRange * 20;
 
         // Initialize Workers
 
@@ -54,19 +54,19 @@ public class Main {
 
         System.out.println("--------------- start T1 -------------");
         worker1Thread.start();
-        Thread.sleep(200);
+        Thread.sleep(400);
         System.out.println("--------------- start T2 -------------");
         worker2Thread.start();
-        Thread.sleep(1000);
+        Thread.sleep(400);
         System.out.println("--------------- start T3 -------------");
         worker3Thread.start();
-        Thread.sleep(200);
+        Thread.sleep(400);
         System.out.println("--------------- start T4 -------------");
         worker4Thread.start();
-        Thread.sleep(200);
+        Thread.sleep(400);
         System.out.println("------------- start Client ------------");
         clientThread.start();
-        Thread.sleep(200);
+        Thread.sleep(400);
 
         try {
             worker1Thread.join();
@@ -77,6 +77,5 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
 }
