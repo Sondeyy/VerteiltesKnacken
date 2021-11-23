@@ -1,0 +1,111 @@
+[main]: Splitting Task:
+[main]: Start indices: [0, 11, 22, 33, 44, 55, 66, 77, 88, 100, 112, 124, 136, 148, 160, 172, 185, 198, 211, 224, 237, 251, 265, 279, 293, 308, 323, 338, 354, 370, 387, 404, 422, 440, 459, 478, 498, 519, 541, 564, 588, 613, 640, 669, 701, 737, 779, 831, 908]
+[main]: Segmentsizes: [11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 21, 22, 23, 24, 25, 27, 29, 32, 36, 42, 52, 77, 92]
+[main]: Calculated Segemnts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[main]: Splitting Task:
+[main]: Start indices: [0, 11, 22, 33, 44, 55, 66, 77, 88, 100, 112, 124, 136, 148, 160, 172, 185, 198, 211, 224, 237, 251, 265, 279, 293, 308, 323, 338, 354, 370, 387, 404, 422, 440, 459, 478, 498, 519, 541, 564, 588, 613, 640, 669, 701, 737, 779, 831, 908]
+[main]: Segmentsizes: [11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 21, 22, 23, 24, 25, 27, 29, 32, 36, 42, 52, 77, 92]
+[main]: Calculated Segemnts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[main]: Splitting Task:
+[main]: Start indices: [0, 11, 22, 33, 44, 55, 66, 77, 88, 100, 112, 124, 136, 148, 160, 172, 185, 198, 211, 224, 237, 251, 265, 279, 293, 308, 323, 338, 354, 370, 387, 404, 422, 440, 459, 478, 498, 519, 541, 564, 588, 613, 640, 669, 701, 737, 779, 831, 908]
+[main]: Segmentsizes: [11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 21, 22, 23, 24, 25, 27, 29, 32, 36, 42, 52, 77, 92]
+[main]: Calculated Segemnts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[main]: Splitting Task:
+[main]: Start indices: [0, 11, 22, 33, 44, 55, 66, 77, 88, 100, 112, 124, 136, 148, 160, 172, 185, 198, 211, 224, 237, 251, 265, 279, 293, 308, 323, 338, 354, 370, 387, 404, 422, 440, 459, 478, 498, 519, 541, 564, 588, 613, 640, 669, 701, 737, 779, 831, 908]
+[main]: Segmentsizes: [11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 21, 22, 23, 24, 25, 27, 29, 32, 36, 42, 52, 77, 92]
+[main]: Calculated Segemnts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+--------------- start T1 -------------
+[Worker 1]: Listening on port: 25000
+[Worker 1]: Connections: []
+[Worker 1 ConnectionHandler]: Opening Serversocket on port: 25000
+--------------- start T2 -------------
+[Worker 2]: Listening on port: 24000
+[Worker 2]: JOIN CLUSTER VIA: localhost/127.0.0.1:25000
+[Worker 2 ConnectionHandler]: Opening Serversocket on port: 24000
+[Worker 1 ConnectionHandler]: Connection Established!
+[Worker 2]: Connected to: localhost/127.0.0.1:25000
+[Worker 2]: SENDING MESSAGE: CONNECT_CLUSTER - (24000|localhost/127.0.0.1)
+[Worker 2]: Connections: [[Port: 25000, EndpointListener: 25000, Connected: true]]
+--------------- start T3 -------------
+[Worker 3]: Listening on port: 23000
+[Worker 3]: JOIN CLUSTER VIA: localhost/127.0.0.1:25000
+[Worker 3 ConnectionHandler]: Opening Serversocket on port: 23000
+[Worker 1 ConnectionHandler]: Connection Established!
+[Worker 3]: Connected to: localhost/127.0.0.1:25000
+[Worker 2 ConnectionHandler]: Connection Established!
+[Worker 3]: Connected to: /127.0.0.1:24000
+[Worker 3]: SENDING MESSAGE: CONNECT_CLUSTER - (23000|localhost/127.0.0.1)
+[Worker 3]: Connections: [[Port: 25000, EndpointListener: 25000, Connected: true], [Port: 24000, EndpointListener: 24000, Connected: true]]
+--------------- start T4 -------------
+[Worker 4]: Listening on port: 22000
+[Worker 4]: JOIN CLUSTER VIA: localhost/127.0.0.1:24000
+[Worker 4 ConnectionHandler]: Opening Serversocket on port: 22000
+[Worker 2 ConnectionHandler]: Connection Established!
+[Worker 4]: Connected to: localhost/127.0.0.1:24000
+[Worker 1 ConnectionHandler]: Connection Established!
+[Worker 4]: Connected to: localhost/127.0.0.1:25000
+[Worker 3 ConnectionHandler]: Connection Established!
+[Worker 4]: Connected to: /127.0.0.1:23000
+[Worker 4]: SENDING MESSAGE: CONNECT_CLUSTER - (22000|localhost/127.0.0.1)
+[Worker 4]: Connections: [[Port: 24000, EndpointListener: 24000, Connected: true], [Port: 25000, EndpointListener: 25000, Connected: true], [Port: 23000, EndpointListener: 23000, Connected: true]]
+------------- start Client ------------
+[Worker 1 ConnectionHandler]: Connection Established!
+[Client]: Connected to: localhost/127.0.0.1:25000
+[Worker 1]: SENDING MESSAGE: START - (249488851623337787855631201847950907117|21000|localhost/127.0.0.1)
+[Worker 2]: SENDING MESSAGE: FREE - 16
+[Worker 3]: SENDING MESSAGE: FREE - 35
+[Worker 1]: SENDING MESSAGE: FREE - 21
+[Worker 4]: SENDING MESSAGE: FREE - 21
+[Worker 2]: All OKS RECEIVED FOR 16
+[Worker 3]: All OKS RECEIVED FOR 35
+[Worker 2]: --- STARTING CALCULATION - 0,0 %
+[Worker 3]: --- STARTING CALCULATION - 0,0 %
+[Worker 3]: SENDING MESSAGE: FINISHED - 35
+[Worker 3]: SENDING MESSAGE: FREE - 12
+[Worker 3]: All OKS RECEIVED FOR 12
+[Worker 3]: --- STARTING CALCULATION - 2,0 %
+[Worker 2]: SENDING MESSAGE: FINISHED - 16
+[Worker 2]: SENDING MESSAGE: FREE - 24
+[Worker 2]: All OKS RECEIVED FOR 24
+[Worker 2]: --- STARTING CALCULATION - 4,1 %
+[Worker 3]: SENDING MESSAGE: FINISHED - 12
+[Worker 3]: SENDING MESSAGE: FREE - 20
+[Worker 3]: All OKS RECEIVED FOR 20
+[Worker 3]: --- STARTING CALCULATION - 6,1 %
+[Worker 2]: SENDING MESSAGE: FINISHED - 24
+[Worker 2]: SENDING MESSAGE: FREE - 48
+[Worker 2]: All OKS RECEIVED FOR 48
+[Worker 2]: --- STARTING CALCULATION - 8,2 %
+[Worker 2]: SENDING MESSAGE: FINISHED - 48
+[Worker 2]: SENDING MESSAGE: FREE - 11
+[Worker 2]: All OKS RECEIVED FOR 11
+[Worker 2]: --- STARTING CALCULATION - 10,2 %
+[Worker 3]: SENDING MESSAGE: FINISHED - 20
+[Worker 3]: SENDING MESSAGE: FREE - 5
+[Worker 3]: All OKS RECEIVED FOR 5
+[Worker 3]: --- STARTING CALCULATION - 12,2 %
+[Worker 2]: SENDING MESSAGE: FINISHED - 11
+[Worker 2]: SENDING MESSAGE: FREE - 40
+[Worker 2]: All OKS RECEIVED FOR 40
+[Worker 2]: --- STARTING CALCULATION - 14,3 %
+[Worker 2]: SENDING MESSAGE: FINISHED - 40
+[Worker 2]: SENDING MESSAGE: FREE - 13
+[Worker 2]: All OKS RECEIVED FOR 13
+[Worker 2]: --- STARTING CALCULATION - 16,3 %
+[Worker 2]: SENDING MESSAGE: ANSWER_FOUND - (16258225993731182729|15345392032287855173)
+[Worker 3]: SENDING MESSAGE: FINISHED - 5
+Exception in thread "Worker 1" [Worker 3]: SENDING MESSAGE: FREE - 4
+
+
+java.lang.NullPointerException: Cannot invoke "de.dhbw.PrimeCalculation.stopCalculation()" because "this.primeCalculation" is null
+	at de.dhbw.Worker.reactToMessage(Worker.java:380)
+	at de.dhbw.Worker.run(Worker.java:456)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+Exception in thread "Worker 4" java.lang.NullPointerException: Cannot invoke "de.dhbw.PrimeCalculation.stopCalculation()" because "this.primeCalculation" is null
+	at de.dhbw.Worker.reactToMessage(Worker.java:380)
+	at de.dhbw.Worker.run(Worker.java:456)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+
+
+[Worker 2]: SUCCESSFULLY CLOSED
+[Worker 3]: SUCCESSFULLY CLOSED

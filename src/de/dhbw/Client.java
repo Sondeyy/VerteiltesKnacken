@@ -91,7 +91,7 @@ public class Client implements Runnable {
                         Logger.log("Decrypted Chiffre is: ".concat(decryptedText));
 
                         Instant endTime = Instant.now();
-                        Logger.log("Calculation took: ".concat(String.valueOf(Duration.between(startTime, endTime).toSeconds())));
+                        Logger.log("Calculation took: ".concat(String.valueOf(Duration.between(startTime, endTime).toSeconds())).concat(" s"));
                     }else{
                         Logger.log("Solution is NOT valid!");
                     }

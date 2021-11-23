@@ -15,7 +15,7 @@ public class PrimeCalculation implements Runnable {
     private volatile PrimeCalculationResult result = null;
 
     public PrimeCalculation(int startIndex, String publicKey, ArrayList<String> primes, int segmentSize) {
-        this.startIndex = startIndex;
+        this.startIndex = startIndex; // todo: start of segment, prime or segments index ??
         this.segmentSize = segmentSize;
         this.publicKey = publicKey;
         this.primes = primes;
@@ -25,7 +25,7 @@ public class PrimeCalculation implements Runnable {
     public void run() {
         RSAHelper helper = new RSAHelper();
 
-        String firstPrime = primes.get(startIndex);
+        // String firstPrime = primes.get(startIndex);
         for (int i = startIndex; i < startIndex + segmentSize; i++) {
             String p = primes.get(i);
 
