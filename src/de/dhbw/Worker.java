@@ -11,8 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ThreadLocalRandom;
 import java.lang.Math;
-import java.util.logging.FileHandler;
-import java.util.logging.SimpleFormatter;
 
 public class Worker implements Runnable {
     private final int listenerPort;
@@ -30,7 +28,7 @@ public class Worker implements Runnable {
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
 
-    private int startIndex; // start index of next/current calculation
+    private int startIndex;
     private final int initialCalculationCount;
     private PrimeCalculation primeCalculation = null;
     private final ArrayList<String> primes = new ArrayList<>();
@@ -38,7 +36,7 @@ public class Worker implements Runnable {
     private ArrayList<Integer> calculatedSegments;
     private final ArrayList<Integer> segmentStartIndex = new ArrayList<>();
 
-    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(this.getClass().getName());
+    // state machine ?
 
     public Worker(int ListenerPort, InetAddress myAddress, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
@@ -47,7 +45,7 @@ public class Worker implements Runnable {
         this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
-        this.splitTask(primes.size(), initialCalculationCount);
+
     }
 
     public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
@@ -58,23 +56,8 @@ public class Worker implements Runnable {
         this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
+        // split up the tasks into
         this.splitTask(primes.size(), initialCalculationCount);
-    }
-
-    private void initLogger(){
-        // Logging
-        FileHandler fileHandler = null;
-        try {
-            fileHandler = new FileHandler("C:\\Users\\n-dro\\OneDrive\\Dokumente\\GitHub\\VerteiltesKnacken\\src\\de\\dhbw\\logs\\".concat(Thread.currentThread().getName()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        SimpleFormatter formatter = new SimpleFormatter();
-        fileHandler.setFormatter(formatter);
-        logger.addHandler(fileHandler);
-
-        logger.setUseParentHandlers(false);
-
     }
 
     /**
@@ -107,7 +90,7 @@ public class Worker implements Runnable {
     /**
      * Split the given prime range into subtasks, that all have at least a certain number of calculations.
      * This accounts for the shrinking number of needed calculations when using a fixed segments size by dynamically
-     * increasing the segment size for segments that start from higher primes.
+     * increasing the segment size for higher primes.
      */
     private void splitTask(int N, int calculations) {
 
@@ -120,7 +103,7 @@ public class Worker implements Runnable {
             int segmentSize = segmentSize(i,N,calculations);
             segmentSizes.add(segmentSize);
 
-            // get start index of next segment
+            // get index of next segment
             i = i + segmentSize;
         }
 
@@ -128,13 +111,14 @@ public class Worker implements Runnable {
         calculatedSegments = new ArrayList<>(Collections.nCopies(this.segmentSizes.size(), 0));
 
         // Logging
-        logger.info("Splitting Task:");
-        logger.info("Start indices: ".concat(segmentStartIndex.toString()));
-        logger.info("Segmentsizes: ".concat(segmentSizes.toString()));
+        Logger.log("Splitting Task:");
+        Logger.log("Start indices: ".concat(segmentStartIndex.toString()));
+        Logger.log("Segmentsizes: ".concat(segmentSizes.toString()));
+        Logger.log("Calculated Segemnts: ".concat(calculatedSegments.toString()));
     }
 
     /**
-     * Calculate the segment length for a given prime index, so that the segment has a total number of calculations between
+     * Calculate the segment length for a given index, so that the segments has a total number of calculations between
      * "calculations" and "calculations"+"N".
      */
     private int segmentSize(int i, int N, int calculations) {
@@ -150,12 +134,10 @@ public class Worker implements Runnable {
     }
 
     /**
-     * Randomly select a segment of the segments that are not yet calculated
+     * Randomly select a segment
      */
     private int selectPrimeRange() {
         ArrayList<Integer> freeStartIndexes = new ArrayList<>();
-
-        logger.info("Select segment from: ".concat(calculatedSegments.toString()));
 
         int i = 0;
         while (i < segmentSizes.size()) {
@@ -176,8 +158,8 @@ public class Worker implements Runnable {
      * select prime range, broadcast FREE to the cluster
      */
     private void askForPrimeRange() {
-        this.state = States.WAIT_FOR_OK;
         this.startIndex = this.selectPrimeRange();
+        this.state = States.WAIT_FOR_OK;
 
         Message request = new Message();
 
@@ -191,8 +173,6 @@ public class Worker implements Runnable {
      * Start a new Calculation in an extra thread
      */
     private void startCalculation() {
-        this.state = States.WORKING;
-
         double percentageCalculated;
 
         try {
@@ -202,9 +182,9 @@ public class Worker implements Runnable {
             percentageCalculated = 0;
         }
 
-        logger.info("--- STARTING CALCULATION OF SEGMENT ".concat(String.valueOf(startIndex)).concat(" ").concat(String.format("%.1f", percentageCalculated).concat(" %")));
-        Logger.log("--- STARTING CALCULATION OF SEGMENT ".concat(String.valueOf(startIndex)).concat(" ").concat(String.format("%.1f", percentageCalculated).concat(" %")));
-
+        Logger.log("--- STARTING CALCULATION - ".concat(String.format("%.1f", percentageCalculated).concat(" %")));
+        this.state = States.WORKING;
+        
         this.primeCalculation = new PrimeCalculation(
                 this.segmentStartIndex.get(startIndex),
                 this.decryptRequestInformation.publicKey,
@@ -231,7 +211,7 @@ public class Worker implements Runnable {
             connection.setListenerPort(port);
             connections.add(connection);
 
-            logger.info(String.format("Connected to: %s:%d", address, port));
+            Logger.log(String.format("Connected to: %s:%d", address, port));
 
             return connection;
         } catch (IOException e) {
@@ -241,7 +221,7 @@ public class Worker implements Runnable {
     }
 
     public Connection requestClusterJoin(InetAddress address, int port) {
-        logger.info("JOIN CLUSTER VIA: ".concat(address.toString()).concat(":").concat(Integer.toString(port)));
+        Logger.log("JOIN CLUSTER VIA: ".concat(address.toString()).concat(":").concat(Integer.toString(port)));
 
         // connect to arbitrary node in cluster
         Connection initial_connection = connectTo(address, port);
@@ -277,7 +257,7 @@ public class Worker implements Runnable {
 
     public void broadcast(Message message) {
         // todo: Outsource to own Thread ?
-        logger.info("SENDING MESSAGE: ".concat(message.toString()));
+        Logger.log("SENDING MESSAGE: ".concat(message.toString()));
         // broadcast message to every connection of node workers
 
         for (Connection connection : connections) {
@@ -356,21 +336,19 @@ public class Worker implements Runnable {
             case START -> {
                 // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
                 // key and to start the calculation
-
                 // unpack the RSA Message and save it
                 this.decryptRequestInformation = (RSAPayload) message.getPayload();
 
                 this.askForPrimeRange();
             }
             case OK -> {
-                // todo: check if section accepted equals section requested !!!!!!!!!!
-
+                // check if section accepted equals section requested
                 if (this.state == States.WAIT_FOR_OK) {
                     this.okCount++;
 
                     // todo: What if one worker doesn´t respond ?
                     if (this.okCount == this.getWorkerCount()) {
-                        logger.info("All OKS RECEIVED FOR ".concat(Integer.toString(startIndex)));
+                        Logger.log("All OKS RECEIVED FOR ".concat(Integer.toString(startIndex)));
                         // I am allowed to calculate!
                         this.okCount = 0;
                         this.startCalculation();
@@ -398,8 +376,7 @@ public class Worker implements Runnable {
                 PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
 
                 // stop calculation
-                // todo: Sometimes throws nullpointer Exceptions, temporary fix
-                if(this.primeCalculation != null) this.primeCalculation.stopCalculation();
+                this.primeCalculation.stopCalculation();
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 ifConnectedToClientSendAnswer(solution);
@@ -416,7 +393,6 @@ public class Worker implements Runnable {
                         connection.write(answer);
                         return;
                     }
-
                 }
                 answer.setType(MessageType.OK);
                 connection.write(answer);
@@ -439,9 +415,7 @@ public class Worker implements Runnable {
 
     @Override
     public void run() {
-        this.initLogger();
-
-        logger.info("Listening on port: ".concat(Integer.toString(listenerPort)));
+        Logger.log("Listening on port: ".concat(Integer.toString(listenerPort)));
 
         // initialize child threads
         ConnectionHandler connectionHandler = new ConnectionHandler(this);
@@ -471,7 +445,7 @@ public class Worker implements Runnable {
             } while (!connectionEstablished);
         }
 
-        logger.info("Connections: ".concat(connections.toString()));
+        Logger.log("Connections: ".concat(connections.toString()));
 
         while (active.get()) {
             // handle client and worker messages
@@ -522,7 +496,7 @@ public class Worker implements Runnable {
             connection.close();
         }
 
-        logger.info("SUCCESSFULLY CLOSED");
+        Logger.log("SUCCESSFULLY CLOSED");
     }
 
     /**
