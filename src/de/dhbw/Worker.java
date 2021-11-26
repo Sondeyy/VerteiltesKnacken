@@ -151,6 +151,12 @@ public class Worker implements Runnable {
             return freeStartIndexes.get(setIndex);
         }
         else {
+            try {
+                throw new Exception();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            this.active.set(false);
             return 0;
         }
     }
@@ -457,7 +463,10 @@ public class Worker implements Runnable {
                 }
             }
             // check if PrimeCalculation came to an end
-            if (this.primeCalculation != null && this.primeCalculation.getResult() != null) {
+            if (this.state == States.WORKING && this.primeCalculation != null && this.primeCalculation.getResult() != null) {
+
+                this.okCount = 0;
+
                 if (this.primeCalculation.getResult().found) {
                     this.sendResult(this.primeCalculation.getResult());
                     this.ifConnectedToClientSendAnswer(this.primeCalculation.getResult());
