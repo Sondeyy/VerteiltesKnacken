@@ -82,8 +82,11 @@ public class Client implements Runnable {
                 Message answer = clusterConnection.read();
 
                 if (answer.getType() == MessageType.ANSWER_FOUND) {
+
+                    PrimeCalculationResult result = ((PrimeCalculationResult) answer.getPayload());
+
                     Logger.log("Received solution: ".concat(answer.toString()));
-                    Logger.log("Percentage of segments: ".concat(String.valueOf(((PrimeCalculationResult) answer.getPayload()).percentageCalculated)));
+                    Logger.log("Percentage of segments: ".concat(String.valueOf(result.percentageCalculated)));
                     PrimeCalculationResult solution = (PrimeCalculationResult) answer.getPayload();
 
                     if(helper.isValid(solution.p,solution.q,publicKey)){
@@ -91,7 +94,11 @@ public class Client implements Runnable {
                         Logger.log("Decrypted Chiffre is: ".concat(decryptedText));
 
                         Instant endTime = Instant.now();
-                        Logger.log("Calculation took: ".concat(String.valueOf(Duration.between(startTime, endTime).toSeconds())));
+                        long duration = Duration.between(startTime, endTime).toSeconds();
+
+                        Logger.log("Calculation took: ".concat(String.valueOf(duration)).concat(" s"));
+                        double app_time = duration * ( 2 - result.percentageCalculated );
+                        Logger.log("Approximate time for 100%: ".concat(String.valueOf(app_time)));
                     }else{
                         Logger.log("Solution is NOT valid!");
                     }
