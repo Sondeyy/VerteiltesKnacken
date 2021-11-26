@@ -34,7 +34,7 @@ public class PrimeCalculation implements Runnable {
 
                 if (helper.isValid(p, q, publicKey)) {
                     this.result = new PrimeCalculationResult(p, q);
-                    Logger.log("FOUND RESULT!!!!!!!!!!!!!!!!!!!!!!!!!!#########");
+                    Logger.log("\n\n\n\nFOUND RESULT!!!!!!!!!!!!!!!!!!!!!!!!!!#############################################################\n\n\n\n\n");
                     return;
                 }
             }
