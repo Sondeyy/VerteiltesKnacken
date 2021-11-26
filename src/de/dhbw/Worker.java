@@ -46,6 +46,7 @@ public class Worker implements Runnable {
 
         this.readPrimesFromFile(primeRange);
 
+        this.splitTask(primes.size(), initialCalculationCount);
     }
 
     public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
