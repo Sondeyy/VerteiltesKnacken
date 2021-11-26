@@ -67,6 +67,7 @@ public class Connection implements Serializable{
     public Role getRole(){
         return role;
     }
+
     public boolean available() {
 
         try {
@@ -79,7 +80,7 @@ public class Connection implements Serializable{
 
     public synchronized Message read() {
         try {
-            int delimiter = this.objectInputStream.readInt();
+            this.objectInputStream.readInt();
             return (Message) objectInputStream.readObject();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();

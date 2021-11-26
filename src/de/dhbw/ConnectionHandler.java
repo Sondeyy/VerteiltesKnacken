@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConnectionHandler implements Runnable {
     private final Worker worker; // the parent worker of the ConnectionHandler thread
-    private AtomicBoolean active = new AtomicBoolean(true);
+    private final AtomicBoolean active = new AtomicBoolean(true);
     ServerSocket server = null;
 
     public ConnectionHandler(Worker worker) {
@@ -31,7 +31,7 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         try {
             Logger.log("Opening Serversocket on port: ".concat(Integer.toString(worker.getListenerPort())));
-            server = new ServerSocket(worker.getListenerPort(), 100, worker.getMyAddress());
+            server = new ServerSocket(worker.getListenerPort(), 500);
         } catch (IOException e) {
             e.printStackTrace();
             Logger.log("Failed to connect Serversocket on Port: ".concat(Integer.toString(worker.getListenerPort())));
@@ -54,9 +54,5 @@ public class ConnectionHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public Worker getWorker() {
-        return worker;
     }
 }

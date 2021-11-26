@@ -24,8 +24,7 @@ public class PrimeCalculation implements Runnable {
     @Override
     public void run() {
         RSAHelper helper = new RSAHelper();
-
-        String firstPrime = primes.get(startIndex);
+        
         for (int i = startIndex; i < startIndex + segmentSize; i++) {
             String p = primes.get(i);
 
@@ -34,7 +33,6 @@ public class PrimeCalculation implements Runnable {
 
                 if (helper.isValid(p, q, publicKey)) {
                     this.result = new PrimeCalculationResult(p, q);
-                    Logger.log("\n\n\n\nFOUND RESULT!!!!!!!!!!!!!!!!!!!!!!!!!!#############################################################\n\n\n\n\n");
                     return;
                 }
             }

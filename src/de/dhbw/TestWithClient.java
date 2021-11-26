@@ -7,25 +7,28 @@ public class TestWithClient {
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
         InetAddress localhost_ip = InetAddress.getByName("localhost");
 
-        int port_W1 = 25000;
-        int port_W2 = 24000;
+        InetAddress connection_address = InetAddress.getByName("192.168.2.170");
+        int connection_port = 25000;
+
+        int port_W1 = 23000;
+        int port_W2 = 22000;
 
         int primeRange = 10000;
 
-        int initialCalculationCount = primeRange * 20;
+        int initialCalculationCount = primeRange * 30;
 
         // Initialize Workers
 
-        Worker worker1 = new Worker(port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker1 = new Worker(port_W1, connection_port, connection_address, primeRange, initialCalculationCount);
         Thread worker1Thread = new Thread(worker1);
         worker1Thread.setName("Worker 1");
 
-        Worker worker2 = new Worker(port_W2, localhost_ip, port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker2 = new Worker(port_W2, port_W1, localhost_ip, primeRange, initialCalculationCount);
         Thread worker2Thread = new Thread(worker2);
         worker2Thread.setName("Worker 2");
 
         // init Client
-        Client client = new Client(21000, localhost_ip, 25000, localhost_ip );
+        Client client = new Client(21000, localhost_ip, 23000, localhost_ip );
 
         //client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5"); // test
         //client.setChiffre("b4820013b07bf8513ee59a905039fb631203c8b38ca3d59b475b4e4e092d3979");// 100

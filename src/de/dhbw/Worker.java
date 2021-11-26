@@ -14,11 +14,9 @@ import java.lang.Math;
 
 public class Worker implements Runnable {
     private final int listenerPort;
-    private final InetAddress myAddress;
     private int initPort = 0;
     private InetAddress initAddress = null;
 
-    // todo: maybe change back to ConcurrentHashmap
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     // private final Queue broadcasts;
     // todo: own thread for broadcasts ?
@@ -36,11 +34,8 @@ public class Worker implements Runnable {
     private ArrayList<Integer> calculatedSegments;
     private final ArrayList<Integer> segmentStartIndex = new ArrayList<>();
 
-    // state machine ?
-
-    public Worker(int ListenerPort, InetAddress myAddress, int primeRange, int initialCalculationCount) {
+    public Worker(int ListenerPort, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
-        this.myAddress = myAddress;
         this.first_node = true;
         this.initialCalculationCount = initialCalculationCount;
 
@@ -49,15 +44,14 @@ public class Worker implements Runnable {
         this.splitTask(primes.size(), initialCalculationCount);
     }
 
-    public Worker(int ListenerPort, InetAddress myAddress, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
+    public Worker(int ListenerPort, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
-        this.myAddress = myAddress;
         this.initAddress = initAddress;
         this.initPort = initPort;
         this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
-        // split up the tasks into
+
         this.splitTask(primes.size(), initialCalculationCount);
     }
 
@@ -258,7 +252,7 @@ public class Worker implements Runnable {
         Message connect_cluster_request = new Message();
         connect_cluster_request.setType(MessageType.CONNECT_CLUSTER);
         // include own ListenerPort, so that other workers know how to connect
-        connect_cluster_request.setPayload(new WorkerInfo(listenerPort, myAddress));
+        connect_cluster_request.setPayload(new WorkerInfo(listenerPort, null));
         broadcast(connect_cluster_request);
     }
 
@@ -524,10 +518,6 @@ public class Worker implements Runnable {
 
     public int getListenerPort() {
         return listenerPort;
-    }
-
-    public InetAddress getMyAddress() {
-        return myAddress;
     }
 
     public CopyOnWriteArrayList<Connection> getConnections() {
