@@ -360,7 +360,7 @@ public class Worker implements Runnable {
                 // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
             }
             case NOK -> {
-                if (!(this.state == States.WAIT_FOR_OK)) {
+                if (this.state == States.WAIT_FOR_OK) {
                     this.state = States.FINISHED_TASK;
                     this.okCount = 0;
                     this.askForPrimeRange();
