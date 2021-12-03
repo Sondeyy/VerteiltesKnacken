@@ -12,6 +12,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.lang.Math;
 import java.net.InetAddress;
 
+
+
 public class Worker implements Runnable {
     private final int listenerPort;
     private int initPort = 0;
@@ -241,9 +243,6 @@ public class Worker implements Runnable {
         // clusterInfo contains all workers except the one connected to
         // establish connections with all workers in cluster
         for (WorkerInfo worker : clusterInfo) {
-            System.out.println("--------------------------\n");
-            System.out.println(worker.address.toString());
-            System.out.println(worker.listenerPort);
             Connection new_connection = connectTo(worker.address, worker.listenerPort);
             new_connection.setRole(Role.WORKER);
 
@@ -418,7 +417,7 @@ public class Worker implements Runnable {
             ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
             for (Connection connection : connections) {
                 if (connection.getRole() == Role.WORKER) {
-                    if (connection.getAddress() == InetAddress.getByName("localhost")) {
+                    if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
                         String own_ip = this.getOwnIp();
                         WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
                         cluster_nodes.add(worker);
@@ -556,4 +555,5 @@ public class Worker implements Runnable {
     public void close() {
         this.active.set(false);
     }
+
 }

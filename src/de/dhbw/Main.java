@@ -4,7 +4,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class Main {
-
     public static void main(String[] args) throws InterruptedException, UnknownHostException {
 
         InetAddress localhost_ip = InetAddress.getByName("localhost");
