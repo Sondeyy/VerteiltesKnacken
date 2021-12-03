@@ -4,13 +4,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ThreadLocalRandom;
 import java.lang.Math;
+import java.net.InetAddress;
 
 public class Worker implements Runnable {
     private final int listenerPort;
@@ -241,7 +241,9 @@ public class Worker implements Runnable {
         // clusterInfo contains all workers except the one connected to
         // establish connections with all workers in cluster
         for (WorkerInfo worker : clusterInfo) {
-
+            System.out.println("--------------------------\n");
+            System.out.println(worker.address.toString());
+            System.out.println(worker.listenerPort);
             Connection new_connection = connectTo(worker.address, worker.listenerPort);
             new_connection.setRole(Role.WORKER);
 
@@ -401,17 +403,36 @@ public class Worker implements Runnable {
         }
     }
 
-    private ArrayList<WorkerInfo> getClusterInfo() {
-        ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
-
-        for (Connection connection : connections) {
-            if (connection.getRole() == Role.WORKER) {
-                WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
-                cluster_nodes.add(worker);
-            }
+    private String getOwnIp() {
+        try(final DatagramSocket socket = new DatagramSocket()){
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            return socket.getLocalAddress().getHostAddress();
+        } catch (SocketException | UnknownHostException e) {
+            e.printStackTrace();
         }
+        return null;
+    }
 
-        return cluster_nodes;
+    private ArrayList<WorkerInfo> getClusterInfo() {
+        try {
+            ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
+            for (Connection connection : connections) {
+                if (connection.getRole() == Role.WORKER) {
+                    if (connection.getAddress() == InetAddress.getByName("localhost")) {
+                        String own_ip = this.getOwnIp();
+                        WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
+                        cluster_nodes.add(worker);
+                    } else {
+                        WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+                        cluster_nodes.add(worker);
+                    }
+                }
+            }
+            return cluster_nodes;
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
