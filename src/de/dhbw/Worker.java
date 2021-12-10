@@ -442,6 +442,24 @@ public class Worker implements Runnable {
         return null;
     }
 
+    private void broadcastDeadNode(Connection connection){
+        Message msg = new Message();
+        msg.setType(MessageType.DEAD_NODE);
+        WorkerInfo deadNodeInfo;
+        try {
+            if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
+                String own_ip = this.getOwnIp();
+                deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
+            } else {
+                deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+            }
+            msg.setPayload(deadNodeInfo);
+            this.broadcast(msg);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void run() {
         Logger.log("Listening on port: ".concat(Integer.toString(listenerPort)));
@@ -478,36 +496,20 @@ public class Worker implements Runnable {
 
         while (active.get()) {
             // handle client and worker messages
-            CopyOnWriteArrayList<Connection> clone = connections;
-            for (Connection connection : clone) {
+            for (Connection connection : new CopyOnWriteArrayList<>(connections)) {
                 if (connection.isInterrupted()) {
                     connections.remove(connection);
-                    Message msg = new Message();
-                    msg.setType(MessageType.DEAD_NODE);
-                    WorkerInfo deadNodeInfo;
-                    try {
-                        if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
-                            String own_ip = this.getOwnIp();
-                            deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
-                        } else {
-                            deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
-                        }
-                        msg.setPayload(deadNodeInfo);
-                        this.broadcast(msg);
-                        break;
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
-                    }
+                    this.broadcastDeadNode(connection);
                 }
             }
+
             for (Connection connection : connections) {
                 if (connection.available()) {
-                    Logger.log("test");
                     Message newMessage = connection.read();
-                    Logger.log("test2");
                     reactToMessage(newMessage, connection);
                 }
             }
+
             // check if PrimeCalculation came to an end
             if (this.state == States.WORKING && this.primeCalculation != null && this.primeCalculation.getResult() != null) {
 
