@@ -45,8 +45,10 @@ public class ConsoleVersion {
 
             Thread workerThread = new Thread(worker);
             workerThread.setName("Worker ".concat(String.valueOf(i)));
+            workerThread.start();
             try {
                 workerThread.join();
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
