@@ -473,7 +473,12 @@ public class Worker implements Runnable {
             do {
                 if (initial_connection.available()) {
 
-                    Message response = initial_connection.read();
+                    Message response = null;
+                    try {
+                        response = initial_connection.read();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     ArrayList<WorkerInfo> clusterInfo = (ArrayList<WorkerInfo>) response.getPayload();
                     joinCluster(clusterInfo);
                     connectionEstablished = true;
@@ -500,7 +505,12 @@ public class Worker implements Runnable {
 
             for (Connection connection : connections) {
                 if (connection.available()) {
-                    Message newMessage = connection.read();
+                    Message newMessage = null;
+                    try {
+                        newMessage = connection.read();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     reactToMessage(newMessage, connection);
                 }
             }
