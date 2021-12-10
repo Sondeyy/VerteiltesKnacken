@@ -3,6 +3,7 @@ package de.dhbw;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * This class represents a single connection
@@ -14,6 +15,7 @@ public class Connection implements Serializable{
     private final InetAddress address;
     transient private ObjectOutputStream objectOutputStream;
     transient private ObjectInputStream objectInputStream;
+    private boolean isInterrupted = false;
 
     public Connection(Socket socket) {
         this.socket = socket;
@@ -64,6 +66,10 @@ public class Connection implements Serializable{
         return address;
     }
 
+    public boolean isInterrupted() {
+        return isInterrupted;
+    }
+
     public Role getRole(){
         return role;
     }
@@ -95,7 +101,8 @@ public class Connection implements Serializable{
             this.objectOutputStream.writeObject(message);
             this.objectOutputStream.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            this.isInterrupted = true;
+            Logger.log("Unable to write");
         }
     }
 

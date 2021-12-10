@@ -10,5 +10,6 @@ public enum MessageType {
     FINISHED,           // I finished the calculation of my package
     ANSWER_FOUND,       // I did it, here is the solution!!!
     CLUSTER_INFO,       // Here are all members of the cluster for you to connect to
+    DEAD_NODE,          // I found a dead node
     CONNECT_CLUSTER,    // Hey, I want to join the cluster, Payload [myAdress, ListenerPort]
 }

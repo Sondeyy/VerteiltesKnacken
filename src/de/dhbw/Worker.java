@@ -399,6 +399,14 @@ public class Worker implements Runnable {
                 answer.setType(MessageType.OK);
                 connection.write(answer);
             }
+            case DEAD_NODE -> {
+                WorkerInfo payload = (WorkerInfo) message.getPayload();
+                InetAddress address = payload.address;
+                int port = payload.listenerPort;
+
+                connections.removeIf(availableConnection -> availableConnection.getAddress() == address && availableConnection.getlistenerPort() == port);
+                Logger.log("Removed node".concat(String.valueOf((port))).concat(" ").concat(address.getHostAddress()));
+            }
         }
     }
 
@@ -470,9 +478,33 @@ public class Worker implements Runnable {
 
         while (active.get()) {
             // handle client and worker messages
+            CopyOnWriteArrayList<Connection> clone = connections;
+            for (Connection connection : clone) {
+                if (connection.isInterrupted()) {
+                    connections.remove(connection);
+                    Message msg = new Message();
+                    msg.setType(MessageType.DEAD_NODE);
+                    WorkerInfo deadNodeInfo;
+                    try {
+                        if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
+                            String own_ip = this.getOwnIp();
+                            deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
+                        } else {
+                            deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+                        }
+                        msg.setPayload(deadNodeInfo);
+                        this.broadcast(msg);
+                        break;
+                    } catch (UnknownHostException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             for (Connection connection : connections) {
                 if (connection.available()) {
+                    Logger.log("test");
                     Message newMessage = connection.read();
+                    Logger.log("test2");
                     reactToMessage(newMessage, connection);
                 }
             }
