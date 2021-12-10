@@ -129,7 +129,7 @@ public class Client implements Runnable {
                     }
                     break;
                 } else if (answer.getType() == MessageType.CLUSTER_INFO){
-                    this.clusterinfo = (ArrayList<WorkerInfo>) clusterConnection.read().getPayload();
+                    this.clusterinfo = (ArrayList<WorkerInfo>) answer.getPayload();
                 } else {
                     Logger.log("Could not handle message: ".concat(answer.toString()));
                 }
