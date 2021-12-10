@@ -140,6 +140,7 @@ public class Client implements Runnable {
                 boolean heartBeatReceived = false;
                 while(Duration.between(start, Instant.now()).toMillis() <= this.timeout){
                     if(clusterConnection.available()){
+                        Logger.log("Heartbeat received!");
                         this.clusterinfo = (ArrayList<WorkerInfo>) clusterConnection.read().getPayload();
                         heartBeatReceived = true;
                     }
