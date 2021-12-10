@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Client implements Runnable {
@@ -17,8 +18,10 @@ public class Client implements Runnable {
     private final AtomicBoolean active = new AtomicBoolean(true);
     private String chiffre;
     private String publicKey;
+    private final int timeout = 500;
 
     private Connection clusterConnection;
+    private ArrayList<WorkerInfo> clusterinfo;
 
     public Client(int listenerPort, InetAddress address, int clusterPort, InetAddress clusterAddress) {
         this.listenerPort = listenerPort;
@@ -62,6 +65,22 @@ public class Client implements Runnable {
         }
     }
 
+    private void sendHeartBeat(){
+        Message heartBeat = new Message();
+        heartBeat.setType(MessageType.ALIVE);
+
+        // todo: Handle Fail
+        this.clusterConnection.write(heartBeat);
+    }
+
+    private void reconnect(){
+        // reconnect to one of the nodes in the cluster
+        WorkerInfo newConnection = clusterinfo.get(0);
+        Logger.log(String.format("Reconnection to: %s: %d", newConnection.address, newConnection.listenerPort));
+        this.connectTo(newConnection.listenerPort, newConnection.address);
+        Logger.log("Successful reconnect!");
+    }
+
     @Override
     public void run() {
 
@@ -103,8 +122,31 @@ public class Client implements Runnable {
                         Logger.log("Solution is NOT valid!");
                     }
                     break;
+                } else if (answer.getType() == MessageType.CLUSTER_INFO){
+
                 } else {
                     Logger.log("Could not handle message: ".concat(answer.toString()));
+                }
+            }else{
+
+                this.sendHeartBeat();
+
+                if(clusterConnection.isInterrupted()){
+                    this.reconnect();
+                    continue;
+                }
+
+                Instant start = Instant.now();
+                boolean heartBeatReceived = false;
+                while(Duration.between(start, Instant.now()).toMillis() <= this.timeout){
+                    if(clusterConnection.available()){
+                        this.clusterinfo = (ArrayList<WorkerInfo>) clusterConnection.read().getPayload();
+                        heartBeatReceived = true;
+                    }
+                }
+
+                if (!heartBeatReceived){
+                    this.reconnect();
                 }
             }
         }

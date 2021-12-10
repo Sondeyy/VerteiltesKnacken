@@ -7,6 +7,7 @@ public enum MessageType {
     JOIN,               // I want all nodes in the cluster, so that I can connect to them
     FREE,               // Is this section available?
     START,              // Repacked version of RSA, send RSA Payload but don´t broadcast the nodes in Network
+    ALIVE,              // Client is checking, whether Node is still alive
     FINISHED,           // I finished the calculation of my package
     ANSWER_FOUND,       // I did it, here is the solution!!!
     CLUSTER_INFO,       // Here are all members of the cluster for you to connect to
