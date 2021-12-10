@@ -1,6 +1,7 @@
 package de.dhbw;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -27,16 +28,20 @@ public class ConsoleVersion {
 
         int initialCalculationCount = Integer.parseInt(props.getProperty("primeRange")) * 30;
 
+        ArrayList<Thread> threads = new ArrayList<>();
+
         for (int i = 0; i < Integer.parseInt(props.getProperty("workerThreads")); i++) {
             Worker worker;
             if (i == 0 && props.getProperty("client").equals("no")) {
+                System.out.println("Creating first Worker");
                 worker = new Worker(
                         Integer.parseInt(props.getProperty("myPort")),
                         Integer.parseInt(props.getProperty("primeRange")),
                         initialCalculationCount);
             } else {
+                System.out.println("Creating Worker ".concat(String.valueOf(i)));
                 worker = new Worker(
-                        Integer.parseInt(props.getProperty("myPort")),
+                        Integer.parseInt(props.getProperty("myPort")) + i,
                         Integer.parseInt(props.getProperty("connectionPort")),
                         InetAddress.getByName(props.getProperty("connectionAddress")),
                         Integer.parseInt(props.getProperty("primeRange")),
@@ -45,18 +50,13 @@ public class ConsoleVersion {
 
             Thread workerThread = new Thread(worker);
             workerThread.setName("Worker ".concat(String.valueOf(i)));
-            workerThread.start();
-            try {
-                workerThread.join();
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            threads.add(workerThread);
         }
 
         if (props.getProperty("client").equals("yes")) {
+            System.out.println("Creating Client");
             Client client = new Client(
-                    Integer.parseInt(props.getProperty("myPort")),
+                    Integer.parseInt(props.getProperty("myPort")) + Integer.parseInt(props.getProperty("workerThreads")),
                     localhost_ip,
                     Integer.parseInt(props.getProperty("connectionPort")),
                     InetAddress.getByName(props.getProperty("connectionAddress"))
@@ -80,13 +80,28 @@ public class ConsoleVersion {
                 }
             }
             Thread clientThread = new Thread(client);
-            clientThread.start();
+            threads.add(clientThread);
+        }
+        for (Thread thread : threads) {
+            System.out.println("Starting ".concat(thread.getName()));
+            thread.start();
             try {
-                clientThread.join();
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-
         }
+
+        for (Thread thread : threads) {
+            System.out.println("Joining ".concat(thread.getName()));
+            try {
+                thread.join(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        System.out.println("Thank you for using VerteiltesKnacken!");
     }
 }
