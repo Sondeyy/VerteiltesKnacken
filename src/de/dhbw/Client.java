@@ -18,7 +18,6 @@ public class Client implements Runnable {
     private final AtomicBoolean active = new AtomicBoolean(true);
     private String chiffre;
     private String publicKey;
-    private final int timeout = 500;
 
     private Connection clusterConnection;
     private ArrayList<WorkerInfo> clusterinfo;

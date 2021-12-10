@@ -312,7 +312,7 @@ public class Worker implements Runnable {
                 this.askForPrimeRange();
 
             }
-            case JOIN -> {
+            case JOIN, CLUSTER_INFO-> {
                 // send new worker a List of all nodes in the cluster --> without clients
 
                 ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
@@ -328,11 +328,6 @@ public class Worker implements Runnable {
 
                 // Set role from UNKNOWN to WORKER
                 connection.setRole(Role.WORKER);
-
-            }
-            case CLUSTER_INFO -> {
-
-                // obsolete ? --> just handle in main run loop
 
             }
             case START -> {

@@ -7,7 +7,7 @@ public class TestWithClient {
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
         InetAddress localhost_ip = InetAddress.getByName("localhost");
 
-        InetAddress connection_address = InetAddress.getByName("192.168.2.141");
+        InetAddress connection_address = InetAddress.getByName("192.168.2.163");
         int connection_port = 25000;
 
         int port_W1 = 23000;
@@ -28,7 +28,7 @@ public class TestWithClient {
         worker2Thread.setName("Worker 2");
 
         // init Client
-        Client client = new Client(21000, localhost_ip, 23000, localhost_ip );
+        Client client = new Client(21000, localhost_ip, 25000, connection_address );
 
         //client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5"); // test
         //client.setChiffre("b4820013b07bf8513ee59a905039fb631203c8b38ca3d59b475b4e4e092d3979");// 100
