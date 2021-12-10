@@ -97,7 +97,14 @@ public class Client implements Runnable {
         while(active.get()){
             // todo: Handle Server disconnect
             if(clusterConnection.available()){
-                Message answer = clusterConnection.read();
+
+                Message answer = null;
+                try {
+                    answer = clusterConnection.read();
+                } catch (IOException e) {
+                    this.reconnect();
+                    continue;
+                }
 
                 if (answer.getType() == MessageType.ANSWER_FOUND) {
 

@@ -84,11 +84,11 @@ public class Connection implements Serializable{
         }
     }
 
-    public synchronized Message read() {
+    public synchronized Message read() throws IOException {
         try {
             this.objectInputStream.readInt();
             return (Message) objectInputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         return null;
