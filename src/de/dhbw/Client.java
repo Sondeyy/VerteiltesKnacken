@@ -123,7 +123,7 @@ public class Client implements Runnable {
                     }
                     break;
                 } else if (answer.getType() == MessageType.CLUSTER_INFO){
-
+                    this.clusterinfo = (ArrayList<WorkerInfo>) clusterConnection.read().getPayload();
                 } else {
                     Logger.log("Could not handle message: ".concat(answer.toString()));
                 }
@@ -136,18 +136,10 @@ public class Client implements Runnable {
                     continue;
                 }
 
-                Instant start = Instant.now();
-                boolean heartBeatReceived = false;
-                while(Duration.between(start, Instant.now()).toMillis() <= this.timeout){
-                    if(clusterConnection.available()){
-                        Logger.log("Heartbeat received!");
-                        this.clusterinfo = (ArrayList<WorkerInfo>) clusterConnection.read().getPayload();
-                        heartBeatReceived = true;
-                    }
-                }
-
-                if (!heartBeatReceived){
-                    this.reconnect();
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
