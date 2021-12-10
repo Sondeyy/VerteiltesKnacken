@@ -67,7 +67,7 @@ public class Client implements Runnable {
 
     private void sendHeartBeat(){
         Message heartBeat = new Message();
-        heartBeat.setType(MessageType.ALIVE);
+        heartBeat.setType(MessageType.CLUSTER_INFO);
 
         // todo: Handle Fail
         this.clusterConnection.write(heartBeat);
