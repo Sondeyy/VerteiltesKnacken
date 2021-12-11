@@ -304,7 +304,7 @@ public class Worker implements Runnable {
                 connection.setRole(Role.CLIENT);
                 connection.setListenerPort(payload.listenerPort);
 
-                if(!this.decryptRequestInformation.publicKey.equals(payload.publicKey)){
+                if(this.decryptRequestInformation == null || !this.decryptRequestInformation.publicKey.equals(payload.publicKey)){
                     // this is not client reconnect, start from calculation scratch
                     this.decryptRequestInformation = payload;
 
