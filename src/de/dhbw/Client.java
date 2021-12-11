@@ -76,8 +76,10 @@ public class Client implements Runnable {
         // reconnect to one of the nodes in the cluster
         WorkerInfo newConnection = clusterinfo.get(0);
         Logger.log(String.format("Reconnection to: %s: %d", newConnection.address, newConnection.listenerPort));
-        this.connectTo(newConnection.listenerPort, newConnection.address);
+        connectTo(newConnection.listenerPort, newConnection.address);
         Logger.log("Successful reconnect!");
+        sendPublicKey(publicKey);
+        Logger.log("Sent public key again");
     }
 
     @Override

@@ -298,22 +298,27 @@ public class Worker implements Runnable {
             case RSA -> {
                 // unpack the RSA Message and save it
                 RSAPayload payload = (RSAPayload) message.getPayload();
-                this.decryptRequestInformation = payload;
 
-                // mark connection as client and set Listener port
+                // mark connection as client and set Listener port, also in case of a reconnect
+                // There the cluster is already calculating the solution for the given public key
                 connection.setRole(Role.CLIENT);
                 connection.setListenerPort(payload.listenerPort);
 
-                // broadcast RSA Message to all nodes in cluster to init calculation
-                message.setType(MessageType.START);
-                broadcast(message);
+                if(!this.decryptRequestInformation.publicKey.equals(payload.publicKey)){
+                    // this is not client reconnect, start from calculation scratch
+                    this.decryptRequestInformation = payload;
 
-                //
-                this.askForPrimeRange();
+                    // broadcast RSA Message to all nodes in cluster to init calculation
+                    message.setType(MessageType.START);
+                    // todo:  terminate all processes upon start
+                    broadcast(message);
 
+                    // begin own calculation
+                    this.askForPrimeRange();
+                }
             }
             case JOIN, CLUSTER_INFO-> {
-                // send new worker a List of all nodes in the cluster --> without clients
+                // send new worker a List of all nodes in the cluster --> without clients and the own worker
 
                 ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
                 answer.setPayload(clusterInfo);
@@ -334,8 +339,10 @@ public class Worker implements Runnable {
                 // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
                 // key and to start the calculation
                 // unpack the RSA Message and save it
-                this.decryptRequestInformation = (RSAPayload) message.getPayload();
 
+                // stop execution of the worker
+
+                this.decryptRequestInformation = (RSAPayload) message.getPayload();
                 this.askForPrimeRange();
             }
             case OK -> {
