@@ -74,12 +74,20 @@ public class Client implements Runnable {
 
     private void reconnect(){
         // reconnect to one of the nodes in the cluster
-        WorkerInfo newConnection = clusterinfo.get(0);
-        Logger.log(String.format("Reconnection to: %s: %d", newConnection.address, newConnection.listenerPort));
-        connectTo(newConnection.listenerPort, newConnection.address);
-        Logger.log("Successful reconnect!");
-        sendPublicKey(publicKey);
-        Logger.log("Sent public key again");
+        for (WorkerInfo clusterNode : clusterinfo) {
+            Logger.log(String.format("Reconnection to: %s: %d", clusterNode.address, clusterNode.listenerPort));
+            connectTo(clusterNode.listenerPort, clusterNode.address);
+
+            // send a XXXX signal to the cluster
+            sendPublicKey(publicKey);
+            // if sending the heartbeat failed, try connecting to the next node in the cluster, else break
+            if(!clusterConnection.isInterrupted()){
+                break;
+            }
+            Logger.log(String.format("Could not reconnect to: %s: %d", clusterNode.address, clusterNode.listenerPort));
+        }
+            Logger.log("Successful reconnect!");
+            Logger.log("Sent public key again");
     }
 
     @Override
