@@ -136,12 +136,10 @@ public class Client implements Runnable {
                     Logger.log("Could not handle message: ".concat(answer.toString()));
                 }
             }else{
-
                 this.sendHeartBeat();
 
                 if(clusterConnection.isInterrupted()){
                     this.reconnect();
-                    continue;
                 }
 
                 try {
