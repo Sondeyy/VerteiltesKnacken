@@ -4,6 +4,7 @@ import de.dhbw.examhelpers.rsa.RSAHelper;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +22,7 @@ public class Client implements Runnable {
 
     private Connection clusterConnection;
     private ArrayList<WorkerInfo> clusterinfo;
+    int timeout = 1000;
 
     public Client(int listenerPort, InetAddress address, int clusterPort, InetAddress clusterAddress) {
         this.listenerPort = listenerPort;
@@ -35,7 +37,8 @@ public class Client implements Runnable {
      */
     public void connectTo(int port, InetAddress address) {
         try {
-            Socket socket = new Socket(address, port);
+            Socket socket = new Socket();
+            socket.connect(new InetSocketAddress(address, port), timeout);
             Connection connection = new Connection(socket);
             connection.connectStreamsClient();
             connection.setListenerPort(port);
