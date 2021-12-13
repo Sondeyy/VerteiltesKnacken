@@ -46,7 +46,7 @@ public class Client implements Runnable {
 
             Logger.log(String.format("Connected to: %s:%d", address, port));
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.log(String.format("Could not connect to: %s:%d", address, port));
         }
     }
 
