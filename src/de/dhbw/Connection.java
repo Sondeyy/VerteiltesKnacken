@@ -6,84 +6,69 @@ import java.net.Socket;
 import java.net.SocketException;
 
 /**
- * This class represents a single connection
+ * This class represents a single connection and contains the socket and connected streams.
+ * Furthermore, it contains information about the listenerPort of the peer and it´s address.
+ * It also contains the role of the connected peer, which can be either: CLIENT, WORKER or UNKNOWN.
  */
-public class Connection implements Serializable{
-    final transient private Socket socket;
-    private Role role = Role.UNKNOWN;
+public class Connection{
+    final private Socket socket;
+    private ObjectOutputStream objectOutputStream;
+    private ObjectInputStream objectInputStream;
     private int ListenerPort;
     private final InetAddress address;
-    transient private ObjectOutputStream objectOutputStream;
-    transient private ObjectInputStream objectInputStream;
+
+    private Role role = Role.UNKNOWN;
+
     private boolean isInterrupted = false;
 
+    /**
+     * Create a connection object based on a socket.
+     * @param socket The socket the connection is based on.
+     */
     public Connection(Socket socket) {
         this.socket = socket;
         this.address = socket.getInetAddress();
     }
 
+    /**
+    * This method first creates the ObjectOutputStream and then the ObjectInputStream (Blocking) on the
+     * client side of the application (The peer, who initiated the connection).
+    */
     public void connectStreamsClient(){
         // create input and output streams
         try {
             this.objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
-            // this.hello();
             this.objectOutputStream.flush();
 
-            // wait for server hello
-            this.objectInputStream = new ObjectInputStream(this.socket.getInputStream()); // block until corresponding outputstream has flushed
+            // wait for server message, blocks until corresponding outputstream has flushed
+            this.objectInputStream = new ObjectInputStream(this.socket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * This method first creates the ObjectInputStream (Blocking) and then the ObjectOutputStream on the
+     * client server of the application (The peer, who accepted the connection). This is in reverse order
+     * of connectStreamsClient().
+     */
     public void connectStreamsServer(){
         // create input and output streams
         try {
-            // wait for first hello message
-            this.objectInputStream = new ObjectInputStream(this.socket.getInputStream()); // block until corresponding outputstream has flushed
+            // wait for client message, blocks until corresponding outputstream has flushed
+            this.objectInputStream = new ObjectInputStream(this.socket.getInputStream());
 
             this.objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
-            // this.hello();
             objectOutputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private String concatAddressPort(InetAddress address, int port){
-        return address.toString().concat(":").concat(Integer.toString(port));
-    }
-
-    public int getlistenerPort() {
-        return ListenerPort;
-    }
-
-    public void setListenerPort(int port){
-        this.ListenerPort = port;
-    }
-
-    public InetAddress getAddress() {
-        return address;
-    }
-
-    public boolean isInterrupted() {
-        return isInterrupted;
-    }
-
-    public Role getRole(){
-        return role;
-    }
-
-    public boolean available() {
-
-        try {
-            return objectInputStream.available() != 0;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
+    /**
+     * Read a message from the ObjectInputstream. This Operation is blocking!
+     * @return The message object.
+     * */
     public synchronized Message read() throws IOException {
         try {
             this.objectInputStream.readInt();
@@ -94,22 +79,48 @@ public class Connection implements Serializable{
         return null;
     }
 
+    /**
+     * Write a message to the ObjectOutputStream, to the connected peer.
+     * @param message The message to write
+     */
     public synchronized void write(Message message){
-        message.setReceiver(concatAddressPort(socket.getInetAddress(), socket.getPort()));
+        String receiver = address.toString().concat(":").concat(Integer.toString(socket.getPort()));
+        message.setReceiver(receiver);
+
         try {
             this.objectOutputStream.writeInt(0);
             this.objectOutputStream.writeObject(message);
             this.objectOutputStream.flush();
         } catch (IOException e) {
+            // If the connection has been closed and an IOException occurs, set isInterrupted to true
             this.isInterrupted = true;
-            Logger.log("Unable to write");
         }
     }
 
-    public void setRole(Role role) {
-        this.role = role;
+    /**
+     * Check, if a write error occured while trying to send a message.
+     * @return True, if writing a message did fail.
+     */
+    public boolean isInterrupted() {
+        return isInterrupted;
     }
 
+    /**
+     * Check if the InputStream contains a new message, this operation is non-blocking.
+     * @return True, if new message has arrived, else false.
+     */
+    public boolean available() {
+        try {
+            return objectInputStream.available() != 0;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Close the Input/OutputStream and the socket.
+     */
     public void close(){
         try {
             objectOutputStream.close();
@@ -120,13 +131,52 @@ public class Connection implements Serializable{
         }
     }
 
+    /**
+     * Return the ListenerPort of the remote peer.
+     * @return The listenerPort on the remote.
+     */
+    public int getlistenerPort() {
+        return ListenerPort;
+    }
+
+    /**
+     * Set the listenerPort of the remote peer.
+     * @param port The new listenerPort of the remote peer
+     */
+    public void setListenerPort(int port){
+        this.ListenerPort = port;
+    }
+
+    /**
+     * Get role of the remote peer.
+     * @return Role of the remote peer.
+     */
+    public Role getRole(){
+        return role;
+    }
+
+    /**
+     * Get the network address of the remote peer.
+     * @return network address of the remote peer.
+     */
+    public InetAddress getAddress() {
+        return address;
+    }
+
+    /**
+     * Set the role of the remote peer.
+     * @param role The role of the remote peer.
+     */
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     @Override
     public String toString(){
         if(socket != null){
-            return String.format("[Port: %d, EndpointListener: %d, Connected: %b]",socket.getPort(), getlistenerPort(), socket.isConnected());
+            return String.format("[%s:%d]", address, getlistenerPort());
         } else {
             return "Not connected";
         }
-
     }
 }

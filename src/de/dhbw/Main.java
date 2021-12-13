@@ -41,7 +41,7 @@ public class Main {
         worker4Thread.setName("Worker 5");
 
         // init Client
-        Client client = new Client(20_000, localhost_ip, 25000, localhost_ip );
+        Client client = new Client(localhost_ip, 25000, localhost_ip );
 
         //client.setChiffre("2d80afa14a65a7bf26636f97c89b43d5"); // test
         //client.setChiffre("b4820013b07bf8513ee59a905039fb631203c8b38ca3d59b475b4e4e092d3979");// 100

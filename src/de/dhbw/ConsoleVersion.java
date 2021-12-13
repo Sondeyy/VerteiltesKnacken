@@ -56,7 +56,6 @@ public class ConsoleVersion {
         if (props.getProperty("client").equals("yes")) {
             System.out.println("Creating Client");
             Client client = new Client(
-                    Integer.parseInt(props.getProperty("myPort")) + Integer.parseInt(props.getProperty("workerThreads")),
                     localhost_ip,
                     Integer.parseInt(props.getProperty("connectionPort")),
                     InetAddress.getByName(props.getProperty("connectionAddress"))
