@@ -33,7 +33,6 @@ public class Worker implements Runnable {
     private int okCount = 0;
 
     private int startIndex;
-    private final int initialCalculationCount;
     private PrimeCalculation primeCalculation = null;
     private final ArrayList<String> primes = new ArrayList<>();
     private final ArrayList<Integer> segmentSizes = new ArrayList<>();
@@ -43,7 +42,6 @@ public class Worker implements Runnable {
     public Worker(int ListenerPort, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
         this.first_node = true;
-        this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
 
@@ -54,7 +52,6 @@ public class Worker implements Runnable {
         this.listenerPort = ListenerPort;
         this.initAddress = initAddress;
         this.initPort = initPort;
-        this.initialCalculationCount = initialCalculationCount;
 
         this.readPrimesFromFile(primeRange);
 
@@ -62,7 +59,8 @@ public class Worker implements Runnable {
     }
 
     /**
-     * @param range number of primes
+     * Read primes from a file
+     * @param range number of primes to read
      */
     private void readPrimesFromFile(int range) {
         String basePath = new File("").getAbsolutePath();
@@ -89,23 +87,26 @@ public class Worker implements Runnable {
     }
 
     /**
-     * Split the given prime range into subtasks, that all have at least a certain number of calculations.
-     * This accounts for the shrinking number of needed calculations when using a fixed segments size by dynamically
-     * increasing the segment size for higher primes.
+     * Split the given prime range into subtasks, that all perform at least a certain number of calculations.
+     * This accounts for the shrinking number of needed calculations (as discussed in PrimeCalculation)
+     * when using a fixed segments size by dynamically increasing the segment size for higher primes. Bruteforcing
+     * every segment therefore takes approximately the same time, regardless of where the segment is located.
+     * @param N Total number of primes
+     * @param calculations Number of calculations, that should be exceeded in each segment
      */
     private void splitTask(int N, int calculations) {
 
-        int i = 0;
+        int index = 0;
 
-        while(i <= N-1){
+        while(index <= N-1){
             // add the prime index that starts a given segment
-            segmentStartIndex.add(i);
+            segmentStartIndex.add(index);
             // calculate the segment size by a given prime index
-            int segmentSize = segmentSize(i,N,calculations);
+            int segmentSize = segmentSize(index,N,calculations);
             segmentSizes.add(segmentSize);
 
             // get index of next segment
-            i = i + segmentSize;
+            index = index + segmentSize;
         }
 
         // initialize bitmap for calculated segments
@@ -115,37 +116,50 @@ public class Worker implements Runnable {
         Logger.log("Splitting Task:");
         Logger.log("Start indices: ".concat(segmentStartIndex.toString()));
         Logger.log("Segmentsizes: ".concat(segmentSizes.toString()));
-        Logger.log("Calculated Segemnts: ".concat(calculatedSegments.toString()));
+        Logger.log("Calculated Segments: ".concat(calculatedSegments.toString()));
     }
 
     /**
-     * Calculate the segment length for a given index, so that the segments has a total number of calculations between
-     * "calculations" and "calculations"+"N".
+     * Calculate the segment length for a given index of a prime, so that the segments have a total number of
+     * calculations between "calculations" and "calculations"+"N". Ideally, "calculations" is a high multiple of N.
+     * This accounts for the shrinking number of calculations needed per prime for primes with higher indices,
+     * by adjusting the segment size so that the total number of calculations is always slightly greater than the
+     * parameter "calculations", regardless of the segment.
+     * This problem was reduced to solving a quadratic equation.
+     * @param index Start index of the new segment
+     * @param N Total number of primes
+     * @param calculations minimum number of calculations
+     * @return Integer- Minimal segment size that exceeds "calculations"
      */
-    private int segmentSize(int i, int N, int calculations) {
-        double b = N - i + 0.5;
-        double discriminant = b*b - 2* calculations;
+    private int segmentSize(int index, int N, int calculations) {
+        double b = N - index + 0.5;
+        double discriminant = b*b - 2*calculations; // the term under the square root of the quadratic formula
 
         if(discriminant >= 0){
+            // When the discriminant is >= 0, the quadratic formula has a solution. This is the segmentSize.
             return (int) Math.ceil(b - Math.sqrt(discriminant));
         }else{
-            // return a segment size that i + segSize = N
-            return N - i;
+            // The discriminant is smaller than 0, the quadratic formula has no solution. This happens, when the
+            // calculatedSegmentsize + N > N. Return a segmentSize, so that index + SegmentSize = N.
+            return N - index;
         }
     }
 
     /**
-     * Randomly select a segment
+     * Randomly select a segment which has not been calculated.
+     * @return Start index of the random segment
      */
     private int selectPrimeRange() {
         ArrayList<Integer> freeStartIndexes = new ArrayList<>();
 
-        int i = 0;
-        while (i < segmentSizes.size()) {
-            if (calculatedSegments.get(i) == 0) freeStartIndexes.add(i);
-            i++;
+        // get start indices of all segments, that have not been calculated before
+        int index = 0;
+        while (index < segmentSizes.size()) {
+            if (calculatedSegments.get(index) == 0) freeStartIndexes.add(index);
+            index++;
         }
 
+        // randomly select a start index from the free start indices
         if (freeStartIndexes.size() > 0) {
             int setIndex = ThreadLocalRandom.current().nextInt(0, freeStartIndexes.size());
             return freeStartIndexes.get(setIndex);
@@ -162,14 +176,13 @@ public class Worker implements Runnable {
     }
 
     /**
-     * select prime range, broadcast FREE to the cluster
+     * Select prime range, broadcast FREE to the cluster to ask if that segment is free.
      */
     private void askForPrimeRange() {
         this.startIndex = this.selectPrimeRange();
         this.state = States.WAIT_FOR_OK;
 
         Message request = new Message();
-
         request.setType(MessageType.FREE);
         request.setPayload(startIndex);
 
@@ -177,7 +190,7 @@ public class Worker implements Runnable {
     }
 
     /**
-     * Start a new Calculation in an extra thread
+     * Start a new calculation in an extra thread for the selected segments
      */
     private void startCalculation() {
         double percentageCalculated;
@@ -199,6 +212,7 @@ public class Worker implements Runnable {
                 this.segmentSizes.get(startIndex)
         );
 
+        // create and start thread
         Thread primeCalculationThread = new Thread(primeCalculation);
         primeCalculationThread.start();
     }
