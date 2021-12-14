@@ -3,6 +3,10 @@ package de.dhbw;
 import java.io.Serializable;
 import java.net.InetAddress;
 
+
+/**
+ * This class is used for the client to send the public Key to the cluster and initiate a calculation.
+ */
 public class RSAPayload implements Serializable {
     public final int listenerPort;
     public final InetAddress address;

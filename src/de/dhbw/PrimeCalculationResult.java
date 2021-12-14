@@ -2,6 +2,12 @@ package de.dhbw;
 
 import java.io.Serializable;
 
+
+/**
+ * This class is used as a container for calculation results of the bruteforce.
+ * When the primes were found, use PrimeCalculationResult(p, q)
+ * If no primes were found, use PrimeCalculationResult(found=false)
+ */
 public class PrimeCalculationResult implements Serializable {
     public String p = null;
     public String q = null;
