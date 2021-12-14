@@ -1,5 +1,7 @@
 package de.dhbw;
 
+import de.dhbw.worker.Worker;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 

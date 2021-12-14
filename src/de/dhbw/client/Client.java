@@ -1,6 +1,13 @@
-package de.dhbw;
+package de.dhbw.client;
 
+import de.dhbw.*;
+import de.dhbw.connection.Connection;
 import de.dhbw.examhelpers.rsa.RSAHelper;
+import de.dhbw.messages.Message;
+import de.dhbw.messages.MessageType;
+import de.dhbw.messages.RSAPayload;
+import de.dhbw.messages.WorkerInfoPayload;
+import de.dhbw.messages.PrimeCalculationResult;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -25,7 +32,7 @@ public class Client implements Runnable {
     private Connection clusterConnection;
     int timeout = 1000;
 
-    private ArrayList<WorkerInfo> clusterinfo;
+    private ArrayList<WorkerInfoPayload> clusterinfo;
 
     private String chiffre;
     private String publicKey;
@@ -106,7 +113,7 @@ public class Client implements Runnable {
      */
     private void reconnect(){
         // reconnect to one of the nodes in the cluster
-        for (WorkerInfo clusterNode : clusterinfo) {
+        for (WorkerInfoPayload clusterNode : clusterinfo) {
             Logger.log(String.format("Reconnection to: %s: %d", clusterNode.address, clusterNode.listenerPort));
             connectTo(clusterNode.listenerPort, clusterNode.address);
 
@@ -176,7 +183,7 @@ public class Client implements Runnable {
                     }
                     break;
                 } else if (answer.getType() == MessageType.CLUSTER_INFO){
-                    this.clusterinfo = (ArrayList<WorkerInfo>) answer.getPayload();
+                    this.clusterinfo = (ArrayList<WorkerInfoPayload>) answer.getPayload();
                 } else {
                     Logger.log("Could not handle message: ".concat(answer.toString()));
                 }

@@ -1,9 +1,11 @@
-package de.dhbw;
+package de.dhbw.worker;
+
+import de.dhbw.Logger;
+import de.dhbw.connection.Connection;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 

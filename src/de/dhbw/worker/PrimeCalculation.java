@@ -1,6 +1,7 @@
-package de.dhbw;
+package de.dhbw.worker;
 
 import de.dhbw.examhelpers.rsa.RSAHelper;
+import de.dhbw.messages.PrimeCalculationResult;
 
 import java.util.ArrayList;
 

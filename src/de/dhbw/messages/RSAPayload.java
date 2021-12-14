@@ -1,4 +1,4 @@
-package de.dhbw;
+package de.dhbw.messages;
 
 import java.io.Serializable;
 import java.net.InetAddress;

@@ -1,4 +1,8 @@
-package de.dhbw;
+package de.dhbw.worker;
+
+import de.dhbw.*;
+import de.dhbw.connection.Connection;
+import de.dhbw.messages.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -239,10 +243,10 @@ public class Worker implements Runnable {
         return initial_connection;
     }
 
-    public void joinCluster(ArrayList<WorkerInfo> clusterInfo) {
+    public void joinCluster(ArrayList<WorkerInfoPayload> clusterInfo) {
         // clusterInfo contains all workers except the one connected to
         // establish connections with all workers in cluster
-        for (WorkerInfo worker : clusterInfo) {
+        for (WorkerInfoPayload worker : clusterInfo) {
             Connection new_connection = connectTo(worker.address, worker.listenerPort);
             new_connection.setRole(Role.WORKER);
 
@@ -253,7 +257,7 @@ public class Worker implements Runnable {
         Message connect_cluster_request = new Message();
         connect_cluster_request.setType(MessageType.CONNECT_CLUSTER);
         // include own ListenerPort, so that other workers know how to connect
-        connect_cluster_request.setPayload(new WorkerInfo(listenerPort, null));
+        connect_cluster_request.setPayload(new WorkerInfoPayload(listenerPort, null));
         broadcast(connect_cluster_request);
     }
 
@@ -320,7 +324,7 @@ public class Worker implements Runnable {
             case JOIN, CLUSTER_INFO-> {
                 // send new worker a List of all nodes in the cluster --> without clients and the own worker
 
-                ArrayList<WorkerInfo> clusterInfo = getClusterInfo();
+                ArrayList<WorkerInfoPayload> clusterInfo = getClusterInfo();
                 answer.setPayload(clusterInfo);
                 answer.setType(MessageType.CLUSTER_INFO);
                 connection.write(answer);
@@ -328,7 +332,7 @@ public class Worker implements Runnable {
             }
             case CONNECT_CLUSTER -> {
                 // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
-                WorkerInfo connection_info = (WorkerInfo) message.getPayload();
+                WorkerInfoPayload connection_info = (WorkerInfoPayload) message.getPayload();
                 connection.setListenerPort(connection_info.listenerPort);
 
                 // Set role from UNKNOWN to WORKER
@@ -402,7 +406,7 @@ public class Worker implements Runnable {
                 connection.write(answer);
             }
             case DEAD_NODE -> {
-                WorkerInfo payload = (WorkerInfo) message.getPayload();
+                WorkerInfoPayload payload = (WorkerInfoPayload) message.getPayload();
                 InetAddress address = payload.address;
                 int port = payload.listenerPort;
 
@@ -422,17 +426,17 @@ public class Worker implements Runnable {
         return null;
     }
 
-    private ArrayList<WorkerInfo> getClusterInfo() {
+    private ArrayList<WorkerInfoPayload> getClusterInfo() {
         try {
-            ArrayList<WorkerInfo> cluster_nodes = new ArrayList<>();
+            ArrayList<WorkerInfoPayload> cluster_nodes = new ArrayList<>();
             for (Connection connection : connections) {
                 if (connection.getRole() == Role.WORKER) {
                     if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
                         String own_ip = this.getOwnIp();
-                        WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
+                        WorkerInfoPayload worker = new WorkerInfoPayload(connection.getlistenerPort(), InetAddress.getByName(own_ip));
                         cluster_nodes.add(worker);
                     } else {
-                        WorkerInfo worker = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+                        WorkerInfoPayload worker = new WorkerInfoPayload(connection.getlistenerPort(), connection.getAddress());
                         cluster_nodes.add(worker);
                     }
                 }
@@ -447,13 +451,13 @@ public class Worker implements Runnable {
     private void broadcastDeadNode(Connection connection){
         Message msg = new Message();
         msg.setType(MessageType.DEAD_NODE);
-        WorkerInfo deadNodeInfo;
+        WorkerInfoPayload deadNodeInfo;
         try {
             if (connection.getAddress().equals(InetAddress.getByName("127.0.0.1"))) {
                 String own_ip = this.getOwnIp();
-                deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), InetAddress.getByName(own_ip));
+                deadNodeInfo = new WorkerInfoPayload(connection.getlistenerPort(), InetAddress.getByName(own_ip));
             } else {
-                deadNodeInfo = new WorkerInfo(connection.getlistenerPort(), connection.getAddress());
+                deadNodeInfo = new WorkerInfoPayload(connection.getlistenerPort(), connection.getAddress());
             }
             msg.setPayload(deadNodeInfo);
             this.broadcast(msg);
@@ -486,7 +490,7 @@ public class Worker implements Runnable {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    ArrayList<WorkerInfo> clusterInfo = (ArrayList<WorkerInfo>) response.getPayload();
+                    ArrayList<WorkerInfoPayload> clusterInfo = (ArrayList<WorkerInfoPayload>) response.getPayload();
                     joinCluster(clusterInfo);
                     connectionEstablished = true;
                 } else {

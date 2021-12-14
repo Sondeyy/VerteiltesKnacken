@@ -1,4 +1,4 @@
-package de.dhbw;
+package de.dhbw.messages;
 
 
 /**
@@ -13,7 +13,7 @@ public enum MessageType {
     FREE,               // Is this section available?
     START,              // Repacked version of RSA, send RSA Payload but don´t broadcast to nodes in Network
     FINISHED,           // I finished the calculation of my package, also send segment number
-    DEAD_NODE,          // I found a dead node: WorkerInfo
+    DEAD_NODE,          // I found a dead node: WorkerInfoPayload
     ANSWER_FOUND,       // I did it, here is the solution!!!
     CLUSTER_INFO,       // Here are all members of the cluster for you to connect to (except me)
     CONNECT_CLUSTER,    // Hey, I want to join the cluster, Payload [myAdress, ListenerPort]

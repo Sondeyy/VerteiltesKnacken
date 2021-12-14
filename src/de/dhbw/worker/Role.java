@@ -1,4 +1,4 @@
-package de.dhbw;
+package de.dhbw.worker;
 
 /**
  * This enum is used to represent the role of a connection. It can either be UNKNOWN, a CLIENT or a WORKER.

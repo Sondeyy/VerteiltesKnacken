@@ -1,9 +1,11 @@
-package de.dhbw;
+package de.dhbw.connection;
+
+import de.dhbw.messages.Message;
+import de.dhbw.worker.Role;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 
 /**
  * This class represents a single connection and contains the socket and connected streams.

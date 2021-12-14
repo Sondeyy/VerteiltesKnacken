@@ -1,4 +1,4 @@
-package de.dhbw;
+package de.dhbw.worker;
 
 /**
  * This enum represents the states a worker can be in:

@@ -1,7 +1,9 @@
 package de.dhbw;
 
+import de.dhbw.client.Client;
+import de.dhbw.worker.Worker;
+
 import java.io.*;
-import java.lang.reflect.Array;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;

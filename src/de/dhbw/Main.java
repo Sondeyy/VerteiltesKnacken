@@ -1,5 +1,8 @@
 package de.dhbw;
 
+import de.dhbw.client.Client;
+import de.dhbw.worker.Worker;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -14,7 +17,7 @@ public class Main {
         int port_W4 = 22_000;
         int port_W5 = 21_000;
 
-        int primeRange = 10000;
+        int primeRange = 100000;
 
         int initialCalculationCount = primeRange * 20;
 
