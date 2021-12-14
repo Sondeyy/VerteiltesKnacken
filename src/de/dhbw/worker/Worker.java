@@ -20,20 +20,23 @@ public class Worker implements Runnable {
     private final int listenerPort;
     private int initPort = 0;
     private InetAddress initAddress = null;
-
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
     private boolean firstNode = false;
-    private RSAPayload decryptRequestInformation;
+
     private States state = States.INIT;
     private final AtomicBoolean active = new AtomicBoolean(true);
     private int okCount = 0;
 
-    private int startIndex;
-    private PrimeCalculation primeCalculation = null;
-    private final ArrayList<String> primes = new ArrayList<>();
-    private final ArrayList<Integer> segmentSizes = new ArrayList<>();
+    private int startIndex; // start index of current calculated segment
+    private RSAPayload decryptRequestInformation; // Contains public key
+    private PrimeCalculation primeCalculation = null; // prime calculation thread
+
+    private final ArrayList<String> primes = new ArrayList<>(); // list of all primes
+    private final ArrayList<Integer> segmentStartIndex = new ArrayList<>(); // list of segment start indices
+    private final ArrayList<Integer> segmentSizes = new ArrayList<>(); // list of segment sizes for each segmentStartIndex
+    // A one at position i in "calculatedSegments" means that the i´th segment was calculated, a zero means it wasn´t.
+    // This segment at position i has the start index segmentStartIndex[i] in "primes" and is segmentSizes[i] primes long.
     private ArrayList<Integer> calculatedSegments;
-    private final ArrayList<Integer> segmentStartIndex = new ArrayList<>();
 
     /**
      * Constructor that is used for the first worker of the cluster, does not connect to any other worker
@@ -418,61 +421,21 @@ public class Worker implements Runnable {
 
             }
             case START -> {
-                // this is RSA message, that is distributed throughout the cluster to supply all nodes with the public
-                // key and to start the calculation
+                /*
+                * The START message is used to distribute the public key throughout the cluster and to start
+                * the calculation.
+                * */
+
                 // unpack the RSA Message and save it
-
-                // stop execution of the worker
-
                 this.decryptRequestInformation = (RSAPayload) message.getPayload();
+                // request a segment
                 this.askForPrimeRange();
             }
-            case OK -> {
-                // check if section accepted equals section requested
-                if (this.state == States.WAIT_FOR_OK) {
-                    this.okCount++;
-
-                    // todo: What if one worker doesn´t respond ?
-                    if (this.okCount == this.getWorkerCount()) {
-                        Logger.log("All OKS RECEIVED FOR ".concat(Integer.toString(startIndex)));
-                        // I am allowed to calculate!
-                        this.okCount = 0;
-                        this.startCalculation();
-                    }
-                }
-                // else
-                // maybe some other worker is down -> wait some random time
-                // still no NOK after given time -> remove fallen worker from connectionList -> allowed to calc
-            }
-            case NOK -> {
-                if (this.state == States.WAIT_FOR_OK) {
-                    this.state = States.FINISHED_TASK;
-                    this.okCount = 0;
-                    this.askForPrimeRange();
-                }
-                // doesn't bother me
-            }
-            case FINISHED -> {
-                // add solution to solution array
-                int startIndexFromMessage = (Integer) message.getPayload();
-                this.calculatedSegments.set(startIndexFromMessage, 1);
-            }
-            case ANSWER_FOUND -> {
-                // fetch message payload
-                PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
-
-                // stop calculation
-                this.primeCalculation.stopCalculation();
-
-                // if connected to client, send him ANSWER FOUND message with prime numbers
-                PrimeSolutionToClient(solution);
-
-                this.state = States.FINISHED_TASK;
-
-                this.active.set(false);
-
-            }
             case FREE -> {
+                /*
+                 * This message is sent, when asking all nodes in the cluster if a segment is free to calculate.
+                 * If the segment is currently calculated, send a NOK, else send a OK.
+                 * */
                 if (this.state == States.WORKING || this.state == States.WAIT_FOR_OK) {
                     if (this.startIndex == (Integer) message.getPayload()) {
                         answer.setType(MessageType.NOK);
@@ -483,17 +446,86 @@ public class Worker implements Runnable {
                 answer.setType(MessageType.OK);
                 connection.write(answer);
             }
+            case OK -> {
+                /*
+                * After sending a FREE message, the worker receives answers from all nodes in the cluster.
+                * If all messages or OK, start calculation.
+                * */
+
+                // check if section accepted equals section requested
+                if (this.state == States.WAIT_FOR_OK) {
+                    this.okCount++;
+
+                    if (this.okCount == this.getWorkerCount()) {
+                        Logger.log("All OKS RECEIVED FOR SEGMENT ".concat(Integer.toString(startIndex)));
+                        // I am allowed to calculate!
+                        this.okCount = 0;
+                        this.startCalculation();
+                    }
+                }
+            }
+            case NOK -> {
+                /*
+                 * After sending a FREE message, the worker receives answers from all nodes in the cluster.
+                 * If one node sends a NOK reply, request a different random prime range.
+                 * */
+
+                if (this.state == States.WAIT_FOR_OK) {
+                    this.state = States.FINISHED_TASK;
+                    this.okCount = 0;
+                    this.askForPrimeRange();
+                }
+            }
+            case FINISHED -> {
+                /*
+                * When a worker finished the bruteforce of a segment, he broadcasts a FINISHED message.
+                * When a finished message is received, set the entry corresponding to the segment index
+                * in "calculatedSegments" to 1.
+                * */
+
+                // add solution to solution array
+                int startIndexFromMessage = (Integer) message.getPayload();
+                this.calculatedSegments.set(startIndexFromMessage, 1);
+            }
+            case ANSWER_FOUND -> {
+                /*
+                * When a node finds the solution, he broadcasts a ANSWER_FOUND message. When a node receives this message,
+                * it stops it´s calculation and terminates. If it is connected to the client, it sends him the result.
+                * */
+
+                // fetch message payload
+                PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
+
+                // stop calculation
+                this.primeCalculation.stopCalculation();
+
+                // if connected to client, send him ANSWER FOUND message with prime numbers
+                PrimeSolutionToClient(solution);
+
+                // shutdown
+                this.state = States.FINISHED_TASK;
+                this.active.set(false);
+            }
             case DEAD_NODE -> {
+                /*
+                * When a node detects a faulty connection, it broadcasts a DEAD_NODE message with the information about the
+                * faulty worker. When received, the other nodes remove this worker from their connection list.
+                * */
+
                 WorkerInfoPayload payload = (WorkerInfoPayload) message.getPayload();
                 InetAddress address = payload.address;
                 int port = payload.listenerPort;
 
                 connections.removeIf(availableConnection -> availableConnection.getAddress() == address && availableConnection.getlistenerPort() == port);
-                Logger.log("Removed node".concat(String.valueOf((port))).concat(" ").concat(address.getHostAddress()));
+                Logger.log("REMOVED NODE: ".concat(String.valueOf((port))).concat(" ").concat(address.getHostAddress()));
             }
         }
     }
 
+    /**
+     * Return the preferred outbound ip, based on: https://stackoverflow.com/a/38342964
+     * @return own IP
+     */
     private String getOwnIp() {
         try(final DatagramSocket socket = new DatagramSocket()){
             socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
@@ -504,6 +536,10 @@ public class Worker implements Runnable {
         return null;
     }
 
+    /**
+     * Get port and address information about all workers in the cluster. If their run on localhost, return outbound ip instead.
+     * @return List of all workers in the cluster
+     */
     private ArrayList<WorkerInfoPayload> getClusterInfo() {
         try {
             ArrayList<WorkerInfoPayload> cluster_nodes = new ArrayList<>();
@@ -526,6 +562,10 @@ public class Worker implements Runnable {
         return null;
     }
 
+    /**
+     * Broadcast information to cluster about a node that died.
+     * @param connection Connection with the dead node
+     */
     private void broadcastDeadNode(Connection connection){
         Message msg = new Message();
         msg.setType(MessageType.DEAD_NODE);
@@ -544,6 +584,21 @@ public class Worker implements Runnable {
         }
     }
 
+    /**
+     * broadcasts found result to all workers in the cluster with an ANSWER_FOUND message
+     * @param result result to be broadcasted
+     */
+    private void broadcastPrimeCalculationResult(PrimeCalculationResult result) {
+        Message resultMessage = new Message();
+        resultMessage.setType(MessageType.ANSWER_FOUND);
+        resultMessage.setPayload(result);
+        this.broadcast(resultMessage);
+    }
+
+    /**
+     * Starting the worker in a thread causes this method to be called.
+     * This is the main loop of the worker.
+     */
     @Override
     public void run() {
         Logger.log("Listening on port: ".concat(Integer.toString(listenerPort)));
@@ -556,6 +611,7 @@ public class Worker implements Runnable {
 
         // connect to the cluster if I am not the first node
         if (!firstNode) {
+            // send a JOIN message to the initial node
             Connection initial_connection = requestClusterJoin(initAddress, initPort);
             appendConnection(initial_connection);
 
@@ -579,13 +635,14 @@ public class Worker implements Runnable {
                         e.printStackTrace();
                     }
                 }
+                // wait, until a connection is established
             } while (!connectionEstablished);
         }
 
-        Logger.log("Connections: ".concat(connections.toString()));
+        Logger.log("CONNECTED TO: ".concat(connections.toString()));
 
         while (active.get()) {
-            // handle client and worker messages
+            // check if a connection was corrupted, in this case remove it and tell other workers about it
             for (Connection connection : new CopyOnWriteArrayList<>(connections)) {
                 if (connection.isInterrupted()) {
                     connections.remove(connection);
@@ -593,7 +650,9 @@ public class Worker implements Runnable {
                 }
             }
 
+            // handle client and worker messages
             for (Connection connection : connections) {
+                // if a message is available in the buffer, read and handle it
                 if (connection.available()) {
                     Message newMessage = null;
                     try {
@@ -601,30 +660,37 @@ public class Worker implements Runnable {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    assert newMessage != null;
+                    // handle the accepted message
                     reactToMessage(newMessage, connection);
                 }
             }
 
-            // check if PrimeCalculation came to an end
+            // check if PrimeCalculation Thread came to an end
             if (this.state == States.WORKING && this.primeCalculation != null && this.primeCalculation.getResult() != null) {
 
+                // reset the OK counter
                 this.okCount = 0;
 
+                // if a solution was found, tell all worker and the client about it and stop execution
                 if (this.primeCalculation.getResult().found) {
-                    this.sendResult(this.primeCalculation.getResult());
+                    this.broadcastPrimeCalculationResult(this.primeCalculation.getResult());
                     this.PrimeSolutionToClient(this.primeCalculation.getResult());
                     break;
                 }
                 else {
+                    // broadcast a FINISHED message with the segment index
                     Message finished = new Message();
                     finished.setType(MessageType.FINISHED);
                     finished.setPayload(this.startIndex);
                     this.broadcast(finished);
 
+                    // set bitmap
                     calculatedSegments.set(startIndex, 1);
 
                     this.state = States.FINISHED_TASK;
 
+                    // restart calculation with different segment --> request
                     this.askForPrimeRange();
                 }
             }
@@ -652,17 +718,6 @@ public class Worker implements Runnable {
         Logger.log("SUCCESSFULLY CLOSED");
     }
 
-    /**
-     * broadcasts found result to the cluster
-     * @param result result to be broadcasted
-     */
-    private void sendResult(PrimeCalculationResult result) {
-        Message resultMessage = new Message();
-        resultMessage.setType(MessageType.ANSWER_FOUND);
-        resultMessage.setPayload(result);
-        this.broadcast(resultMessage);
-    }
-
     // getters and setters
 
     public int getListenerPort() {
@@ -684,5 +739,4 @@ public class Worker implements Runnable {
     public void close() {
         this.active.set(false);
     }
-
 }
