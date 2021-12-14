@@ -5,6 +5,7 @@ package de.dhbw;
  * This enum contains all possible types of a message object
  */
 public enum MessageType {
+    // todo: Update ?
     OK,                 // It's okay to calculate this section
     NOK,                // It's not okay to calculate this section, I'm doing it!
     RSA,                // Sent by Client: Crack my public key! Payload: [pub, clientIP, clientPort(Listener)]
