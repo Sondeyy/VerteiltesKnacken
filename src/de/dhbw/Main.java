@@ -27,19 +27,19 @@ public class Main {
         Thread worker1Thread = new Thread(worker1);
         worker1Thread.setName("Worker 1");
 
-        Worker worker2 = new Worker(port_W2, port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker2 = new Worker(port_W2, primeRange, initialCalculationCount, port_W1, localhost_ip);
         Thread worker2Thread = new Thread(worker2);
         worker2Thread.setName("Worker 2");
 
-        Worker worker3 = new Worker(port_W3, port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker3 = new Worker(port_W3, primeRange, initialCalculationCount, port_W1, localhost_ip);
         Thread worker3Thread = new Thread(worker3);
         worker3Thread.setName("Worker 3");
 
-        Worker worker4 = new Worker(port_W4, port_W2, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker4 = new Worker(port_W4, primeRange, initialCalculationCount, port_W2, localhost_ip);
         Thread worker4Thread = new Thread(worker4);
         worker4Thread.setName("Worker 4");
 
-        Worker worker5 = new Worker(port_W5, port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker5 = new Worker(port_W5, primeRange, initialCalculationCount, port_W1, localhost_ip);
         Thread worker5Thread = new Thread(worker5);
         worker4Thread.setName("Worker 5");
 

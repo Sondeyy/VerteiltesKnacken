@@ -16,17 +16,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.lang.Math;
 import java.net.InetAddress;
 
-
-
 public class Worker implements Runnable {
     private final int listenerPort;
     private int initPort = 0;
     private InetAddress initAddress = null;
 
     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>(); // handle workers and clients
-    // private final Queue broadcasts;
-    // todo: own thread for broadcasts ?
-    private boolean first_node = false;
+    private boolean firstNode = false;
     private RSAPayload decryptRequestInformation;
     private States state = States.INIT;
     private final AtomicBoolean active = new AtomicBoolean(true);
@@ -39,16 +35,30 @@ public class Worker implements Runnable {
     private ArrayList<Integer> calculatedSegments;
     private final ArrayList<Integer> segmentStartIndex = new ArrayList<>();
 
+    /**
+     * Constructor that is used for the first worker of the cluster, does not connect to any other worker
+     * @param ListenerPort open port to listen for new connections
+     * @param primeRange range of primes that should be bruteforced
+     * @param initialCalculationCount number of calculations per segment
+     */
     public Worker(int ListenerPort, int primeRange, int initialCalculationCount) {
         this.listenerPort = ListenerPort;
-        this.first_node = true;
+        this.firstNode = true;
 
         this.readPrimesFromFile(primeRange);
 
         this.splitTask(primes.size(), initialCalculationCount);
     }
 
-    public Worker(int ListenerPort, int initPort, InetAddress initAddress, int primeRange, int initialCalculationCount) {
+    /**
+     * Constructor that is used for the workers which connect to the cluster via another worker.
+     * @param ListenerPort open port to listen for new connections
+     * @param primeRange range of primes that should be bruteforced
+     * @param initialCalculationCount number of calculations per segment
+     * @param initPort Remote worker port to connect to the cluster
+     * @param initAddress Remote worker address to connect to the cluster
+     */
+    public Worker(int ListenerPort, int primeRange, int initialCalculationCount, int initPort, InetAddress initAddress) {
         this.listenerPort = ListenerPort;
         this.initAddress = initAddress;
         this.initPort = initPort;
@@ -88,9 +98,9 @@ public class Worker implements Runnable {
 
     /**
      * Split the given prime range into subtasks, that all perform at least a certain number of calculations.
-     * This accounts for the shrinking number of needed calculations (as discussed in PrimeCalculation)
-     * when using a fixed segments size by dynamically increasing the segment size for higher primes. Bruteforcing
-     * every segment therefore takes approximately the same time, regardless of where the segment is located.
+     * This accounts for the shrinking number of needed calculations (as discussed in PrimeCalculation) for primes with
+     * higher indices when using a fixed segments size by dynamically increasing the segment size for higher primes.
+     * Bruteforcing every segment therefore takes approximately the same time, regardless of where the segment is located.
      * @param N Total number of primes
      * @param calculations Number of calculations, that should be exceeded in each segment
      */
@@ -217,20 +227,29 @@ public class Worker implements Runnable {
         primeCalculationThread.start();
     }
 
+    /**
+     * Add a connection to the connections list.
+     * @param connection connection to add
+     */
     public void appendConnection(Connection connection) {
         connections.add(connection);
     }
 
+    /**
+     * Open a socket connection with a worker in the cluster and create a connection Object.
+     * @param address Address
+     * @param port port
+     * @return Connection Object
+     */
     public Connection connectTo(InetAddress address, int port) {
         Socket socket;
         try {
-            // make a new socket on "myPort"
+            // make a socket connection
             socket = new Socket(address, port);
-
+            // new connection object from socket
             Connection connection = new Connection(socket);
             connection.connectStreamsClient();
             connection.setListenerPort(port);
-            connections.add(connection);
 
             Logger.log(String.format("Connected to: %s:%d", address, port));
 
@@ -241,45 +260,60 @@ public class Worker implements Runnable {
         }
     }
 
+    /**
+     * Establish a connection to a worker in the cluster and send him a JOIN request.
+     * @param address Address of the worker
+     * @param port Port of the worker
+     * @return connection to the initial worker
+     */
     public Connection requestClusterJoin(InetAddress address, int port) {
+        //Logging
         Logger.log("JOIN CLUSTER VIA: ".concat(address.toString()).concat(":").concat(Integer.toString(port)));
 
         // connect to arbitrary node in cluster
-        Connection initial_connection = connectTo(address, port);
-        initial_connection.setRole(Role.WORKER);
+        Connection initialConnection = connectTo(address, port);
+        initialConnection.setRole(Role.WORKER);
 
         // send JOIN Message to ask for other nodes in cluster
         Message join_request = new Message();
         join_request.setType(MessageType.JOIN);
+        initialConnection.write(join_request);
 
-        initial_connection.write(join_request);
-
-        return initial_connection;
+        return initialConnection;
     }
 
-    public void joinCluster(ArrayList<WorkerInfoPayload> clusterInfo) {
-        // clusterInfo contains all workers except the one connected to
+    /**
+     * Connect to all workers of the cluster, specified in "clusterInfo"
+     * @param clusterInfo Arraylist<WorkerInfoPayload> Address and Port of all workers in the cluster
+     */
+    public void connectToCluster(ArrayList<WorkerInfoPayload> clusterInfo) {
+        // clusterInfo contains all workers except the one already connected to
         // establish connections with all workers in cluster
         for (WorkerInfoPayload worker : clusterInfo) {
-            Connection new_connection = connectTo(worker.address, worker.listenerPort);
-            new_connection.setRole(Role.WORKER);
-
-            // todo: Call Append here ? --> Give Listener Port as parameter, when accepting connections, set Listener Port correctly ?
+            // connect to worker
+            Connection newConnection = connectTo(worker.address, worker.listenerPort);
+            // set role
+            newConnection.setRole(Role.WORKER);
+            // append connection to connections list
+            appendConnection(newConnection);
         }
 
         // broadcast a request to join the cluster after connecting with every node
-        Message connect_cluster_request = new Message();
-        connect_cluster_request.setType(MessageType.CONNECT_CLUSTER);
+        Message connectToClusterRequest = new Message();
+        connectToClusterRequest.setType(MessageType.CONNECT_CLUSTER);
         // include own ListenerPort, so that other workers know how to connect
-        connect_cluster_request.setPayload(new WorkerInfoPayload(listenerPort, null));
-        broadcast(connect_cluster_request);
+        connectToClusterRequest.setPayload(new WorkerInfoPayload(listenerPort, null));
+        // broadcast message to all workers
+        broadcast(connectToClusterRequest);
     }
 
+    /**
+     * Broadcast a message to all workers of the cluster
+     * @param message Message to broadcast
+     */
     public void broadcast(Message message) {
-        // todo: Outsource to own Thread ?
         Logger.log("SENDING MESSAGE: ".concat(message.toString()));
         // broadcast message to every connection of node workers
-
         for (Connection connection : connections) {
             if (connection.getRole() == Role.WORKER) {
                 connection.write(message);
@@ -287,7 +321,11 @@ public class Worker implements Runnable {
         }
     }
 
-    public void ifConnectedToClientSendAnswer(PrimeCalculationResult solution) {
+    /**
+     * If the worker is connected to the client, send him the result of the prime calculation
+     * @param solution Result of exhaustive key search
+     */
+    public void PrimeSolutionToClient(PrimeCalculationResult solution) {
         for (Connection connection : connections) {
             if (connection.getRole() == Role.CLIENT) {
                 Message solution_message = new Message();
@@ -303,7 +341,7 @@ public class Worker implements Runnable {
     }
 
     /**
-     * React to incoming message based on type
+     * React to an incoming message based on it´s type
      * @param message message to which worker should react
      * @param connection connection the message came from
      */
@@ -314,19 +352,30 @@ public class Worker implements Runnable {
         // handle messages based on their messageType
         switch (message.getType()) {
             case RSA -> {
+                /*
+                * The RSA message is sent to a worker by a client, it contains the public key and should
+                * initialize the calculation. There are two possible scenarios:
+                *   1) The client connects the first time, distribute the public key through the cluster with a START
+                *       message that initiate the calculation.
+                *   2) The client reconnects to this worker, because it´s original worker died. In this case the ongoing
+                *      calculation should not start from the beginning, the client is recognized by it´s public key.
+                * */
+
                 // unpack the RSA Message and save it
                 RSAPayload payload = (RSAPayload) message.getPayload();
 
-                // mark connection as client and set Listener port, also in case of a reconnect
+                // mark connection as client and set listener port, also in case of a reconnect
                 // There the cluster is already calculating the solution for the given public key
                 connection.setRole(Role.CLIENT);
                 connection.setListenerPort(payload.listenerPort);
 
+                // only distribute the key and initialize the calculation, if public key from the client is not currently
+                // processed
                 if(this.decryptRequestInformation == null || !this.decryptRequestInformation.publicKey.equals(payload.publicKey)){
                     // this is not client reconnect, start from calculation scratch
                     this.decryptRequestInformation = payload;
 
-                    // broadcast RSA Message to all nodes in cluster to init calculation
+                    // broadcast RSA Message payload to all nodes in cluster to init calculation in START message
                     message.setType(MessageType.START);
                     // todo:  terminate all processes upon start
                     broadcast(message);
@@ -336,15 +385,30 @@ public class Worker implements Runnable {
                 }
             }
             case JOIN, CLUSTER_INFO-> {
-                // send new worker a List of all nodes in the cluster --> without clients and the own worker
+                /*
+                * A JOIN request is sent by a new worker during it´s connection process. The worker needs
+                * information about all workers in the cluster that he needs to connect to. The wroker serving this
+                * request with a message of type CLUSTER_INFO.
+                *
+                * A CLUSTER_INFO request is sent by a client, to get information about all workers in the cluster.
+                * If it´s currently connected worker fails, it tries to connect to a different one.
+                *
+                * In both scenarios, a list of all nodes in the cluster without clients and the current worker is sent.
+                * */
 
                 ArrayList<WorkerInfoPayload> clusterInfo = getClusterInfo();
                 answer.setPayload(clusterInfo);
                 answer.setType(MessageType.CLUSTER_INFO);
                 connection.write(answer);
-
             }
             case CONNECT_CLUSTER -> {
+                /*
+                * This message is sent by a worker joining the cluster. After it has received port and address
+                * information of all nodes in the cluster, it connects to each of them. A CONNECT_CLUSTER message is
+                * sent along, it is used to update the information about itself in the remote peer.
+                * Mainly the listener port, and the role is changed to WORKER.
+                * */
+
                 // set the local ListenerPort of the connection, that was sent with the CONNECT_CLUSTER message
                 WorkerInfoPayload connection_info = (WorkerInfoPayload) message.getPayload();
                 connection.setListenerPort(connection_info.listenerPort);
@@ -401,7 +465,7 @@ public class Worker implements Runnable {
                 this.primeCalculation.stopCalculation();
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
-                ifConnectedToClientSendAnswer(solution);
+                PrimeSolutionToClient(solution);
 
                 this.state = States.FINISHED_TASK;
 
@@ -491,8 +555,9 @@ public class Worker implements Runnable {
         connectionHandlerThread.start();
 
         // connect to the cluster if I am not the first node
-        if (!first_node) {
+        if (!firstNode) {
             Connection initial_connection = requestClusterJoin(initAddress, initPort);
+            appendConnection(initial_connection);
 
             boolean connectionEstablished = false;
             do {
@@ -505,7 +570,7 @@ public class Worker implements Runnable {
                         e.printStackTrace();
                     }
                     ArrayList<WorkerInfoPayload> clusterInfo = (ArrayList<WorkerInfoPayload>) response.getPayload();
-                    joinCluster(clusterInfo);
+                    connectToCluster(clusterInfo);
                     connectionEstablished = true;
                 } else {
                     try {
@@ -547,7 +612,7 @@ public class Worker implements Runnable {
 
                 if (this.primeCalculation.getResult().found) {
                     this.sendResult(this.primeCalculation.getResult());
-                    this.ifConnectedToClientSendAnswer(this.primeCalculation.getResult());
+                    this.PrimeSolutionToClient(this.primeCalculation.getResult());
                     break;
                 }
                 else {

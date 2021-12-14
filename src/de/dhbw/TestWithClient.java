@@ -22,11 +22,11 @@ public class TestWithClient {
 
         // Initialize Workers
 
-        Worker worker1 = new Worker(port_W1, connection_port, connection_address, primeRange, initialCalculationCount);
+        Worker worker1 = new Worker(port_W1, primeRange, initialCalculationCount, connection_port, connection_address);
         Thread worker1Thread = new Thread(worker1);
         worker1Thread.setName("Worker 1");
 
-        Worker worker2 = new Worker(port_W2, port_W1, localhost_ip, primeRange, initialCalculationCount);
+        Worker worker2 = new Worker(port_W2, primeRange, initialCalculationCount, port_W1, localhost_ip);
         Thread worker2Thread = new Thread(worker2);
         worker2Thread.setName("Worker 2");
 

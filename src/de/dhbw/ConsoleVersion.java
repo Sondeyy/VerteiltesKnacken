@@ -44,10 +44,9 @@ public class ConsoleVersion {
                 System.out.println("Creating Worker ".concat(String.valueOf(i)));
                 worker = new Worker(
                         Integer.parseInt(props.getProperty("myPort")) + i,
-                        Integer.parseInt(props.getProperty("connectionPort")),
-                        InetAddress.getByName(props.getProperty("connectionAddress")),
-                        Integer.parseInt(props.getProperty("primeRange")),
-                        initialCalculationCount);
+                        Integer.parseInt(props.getProperty("primeRange")), initialCalculationCount, Integer.parseInt(props.getProperty("connectionPort")),
+                        InetAddress.getByName(props.getProperty("connectionAddress"))
+                );
             }
 
             Thread workerThread = new Thread(worker);
