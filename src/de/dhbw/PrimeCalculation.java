@@ -63,10 +63,12 @@ public class PrimeCalculation implements Runnable {
     @Override
     public void run() {
         RSAHelper helper = new RSAHelper();
-        
+
+        // iterate over all primes p_i of the segment
         for (int i = startIndex; i < startIndex + segmentSize; i++) {
             String p = primes.get(i);
 
+            // for every prime p_i, check all primes q_i >= p_i for a match
             for (int j = startIndex + i; j < primes.size(); j++) {
                 String q = primes.get(j);
 
@@ -80,10 +82,17 @@ public class PrimeCalculation implements Runnable {
         this.result = new PrimeCalculationResult(false);
     }
 
+    /**
+     * Get the result of the brute force
+     * @return PrimeCalculationResult-The result of the bruteforce
+     */
     public PrimeCalculationResult getResult() {
         return result;
     }
 
+    /**
+     * Stop the calculation
+     */
     public void stopCalculation() {
         this.result = new PrimeCalculationResult(false);
     }
