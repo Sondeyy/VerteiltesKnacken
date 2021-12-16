@@ -102,7 +102,6 @@ public class Client implements Runnable {
         Message heartBeat = new Message();
         heartBeat.setType(MessageType.CLUSTER_INFO);
 
-        // todo: Handle Fail
         this.clusterConnection.write(heartBeat);
     }
 
@@ -119,7 +118,6 @@ public class Client implements Runnable {
 
             // resend the publicKey to the cluster
             sendPublicKey(publicKey);
-            // todo: Maybe waiut for answer ?
             // if sending the public key failed, try connecting to the next node in the cluster, else break
             if(!clusterConnection.isInterrupted()){
                 break;
@@ -176,7 +174,7 @@ public class Client implements Runnable {
                         long duration = Duration.between(startTime, endTime).toSeconds();
 
                         Logger.log("Calculation took: ".concat(String.valueOf(duration)).concat(" s"));
-                        double app_time = duration * ( 2 - result.percentageCalculated );
+                        double app_time = duration / result.percentageCalculated;
                         Logger.log("Approximate time for 100%: ".concat(String.valueOf(app_time)));
                     }else{
                         Logger.log("Solution is NOT valid!");
