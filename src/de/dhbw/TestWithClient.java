@@ -53,7 +53,7 @@ public class TestWithClient {
         for (Thread workerThread : workerThreads) {
             System.out.println("--------------- start Worker -------------");
             workerThread.start();
-            Thread.sleep(200);
+            Thread.sleep(400);
         }
 
         // start client
