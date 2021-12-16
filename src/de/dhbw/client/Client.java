@@ -171,7 +171,7 @@ public class Client implements Runnable {
                         Logger.log("Decrypted Chiffre is: ".concat(decryptedText));
 
                         Instant endTime = Instant.now();
-                        long duration = Duration.between(startTime, endTime).toSeconds();
+                        long duration = Duration.between(startTime, endTime).toMillis()/1000;
 
                         Logger.log("Calculation took: ".concat(String.valueOf(duration)).concat(" s"));
                         double app_time = duration / result.percentageCalculated;
