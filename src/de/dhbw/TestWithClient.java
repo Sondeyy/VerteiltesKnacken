@@ -17,7 +17,7 @@ public class TestWithClient {
 
         int primeRange = 100;
         int workers = 1;
-        int initialCalculationCount = primeRange * 30;
+        int initialCalculationCount = primeRange * 10;
         ArrayList<Thread> workerThreads = new ArrayList<>();
 
         // initialize all workers
