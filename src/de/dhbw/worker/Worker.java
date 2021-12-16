@@ -178,12 +178,6 @@ public class Worker implements Runnable {
             return freeStartIndexes.get(setIndex);
         }
         else {
-            try {
-                throw new Exception();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            this.active.set(false);
             return 0;
         }
     }
