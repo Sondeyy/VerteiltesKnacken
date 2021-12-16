@@ -15,7 +15,7 @@ public class TestWithClient {
 
         int startPort = 25_000;
 
-        int primeRange = 10000;
+        int primeRange = 100000;
         int workers = 5;
         int initialCalculationCount = primeRange * 50;
         ArrayList<Thread> workerThreads = new ArrayList<>();
