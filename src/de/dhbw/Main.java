@@ -14,7 +14,7 @@ public class Main {
 
         int startPort = 25_000;
 
-        int primeRange = 10000;
+        int primeRange = 1000;
         int workers = 10;
         int initialCalculationCount = primeRange * 50;
         ArrayList<Thread> workerThreads = new ArrayList<>();
@@ -59,9 +59,10 @@ public class Main {
         for (Thread workerThread : workerThreads) {
             System.out.println("--------------- start Worker -------------");
             workerThread.start();
-            Thread.sleep(200);
+            Thread.sleep(300);
         }
 
+        Thread.sleep(400);
         // start client
         clientThread.start();
 
