@@ -29,7 +29,7 @@ public class TestWithClient {
         }
 
         // init Client
-        Client client = new Client(localhost_ip, startPort, localhost_ip );
+        Client client = new Client(localhost_ip, startPort, connection_address );
         Thread clientThread = new Thread(client);
         clientThread.setName("Client");
 
