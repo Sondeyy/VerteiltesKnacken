@@ -380,7 +380,6 @@ public class Worker implements Runnable {
 
                     // broadcast RSA Message payload to all nodes in cluster to init calculation in START message
                     message.setType(MessageType.START);
-                    // todo:  terminate all processes upon start
                     broadcast(message);
 
                     // begin own calculation
