@@ -178,7 +178,7 @@ public class Worker implements Runnable {
             return freeStartIndexes.get(setIndex);
         }
         else {
-            return 0;
+            throw new IndexOutOfBoundsException();
         }
     }
 
@@ -186,7 +186,12 @@ public class Worker implements Runnable {
      * Select prime range, broadcast FREE to the cluster to ask if that segment is free.
      */
     private void askForPrimeRange() {
-        this.startIndex = this.selectPrimeRange();
+        try{
+            this.startIndex = this.selectPrimeRange();
+        }catch (IndexOutOfBoundsException e){
+            return;
+        }
+
         this.state = States.WAIT_FOR_OK;
 
         Message request = new Message();
