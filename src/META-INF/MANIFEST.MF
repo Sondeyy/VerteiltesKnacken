@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: de.dhbw.ConsoleVersion
+Class-Path: bcprov-jdk15on-169.jar
+
