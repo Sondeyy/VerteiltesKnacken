@@ -258,7 +258,7 @@ public class Worker implements Runnable {
 
             return connection;
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.log(String.format("Could not connect to: %s:%d", address, port));
             return null;
         }
     }
@@ -275,6 +275,7 @@ public class Worker implements Runnable {
 
         // connect to arbitrary node in cluster
         Connection initialConnection = connectTo(address, port);
+        if(initialConnection == null) return null;
         initialConnection.setRole(Role.WORKER);
 
         // send JOIN Message to ask for other nodes in cluster
@@ -611,7 +612,17 @@ public class Worker implements Runnable {
         // connect to the cluster if I am not the first node
         if (!firstNode) {
             // send a JOIN message to the initial node
-            Connection initial_connection = requestClusterJoin(initAddress, initPort);
+            Connection initial_connection;
+            do {
+                initial_connection = requestClusterJoin(initAddress, initPort);
+
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }while(initial_connection == null);
+
             appendConnection(initial_connection);
 
             boolean connectionEstablished = false;
