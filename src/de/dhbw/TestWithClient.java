@@ -22,14 +22,14 @@ public class TestWithClient {
 
         // initialize all workers
         for(int workerNr = 1; workerNr <= workers; workerNr++){
-            Worker worker_n = new Worker(startPort-workerNr, primeRange, initialCalculationCount, startPort, connection_address);
+            Worker worker_n = new Worker(startPort-workerNr+1, primeRange, initialCalculationCount, startPort, connection_address);
             Thread workerNThread = new Thread(worker_n);
             workerNThread.setName("Worker ".concat(String.valueOf(workerNr)));
             workerThreads.add(workerNThread);
         }
 
         // init Client
-        Client client = new Client(localhost_ip, startPort, connection_address );
+        Client client = new Client(localhost_ip, startPort, localhost_ip );
         Thread clientThread = new Thread(client);
         clientThread.setName("Client");
 
@@ -56,6 +56,7 @@ public class TestWithClient {
             Thread.sleep(400);
         }
 
+        Thread.sleep(300);
         // start client
         clientThread.start();
 
