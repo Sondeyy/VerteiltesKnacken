@@ -203,7 +203,7 @@ public class Worker implements Runnable {
     }
 
     /**
-     * Start a new calculation in an extra thread for the selected segments
+     * Start a new calculation in an extra thread for the selected segments (startIndex)
      */
     private void startCalculation() {
         double percentageCalculated;
@@ -504,7 +504,6 @@ public class Worker implements Runnable {
                 }catch (Exception ignored){
 
                 }
-
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 PrimeSolutionToClient(solution);
