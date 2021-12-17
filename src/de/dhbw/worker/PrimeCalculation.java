@@ -70,7 +70,7 @@ public class PrimeCalculation implements Runnable {
             String p = primes.get(i);
 
             // for every prime p_i, check all primes q_i >= p_i for a match
-            for (int j = startIndex + i; j < primes.size(); j++) {
+            for (int j = i; j < primes.size(); j++) {
                 String q = primes.get(j);
 
                 if (helper.isValid(p, q, publicKey)) {

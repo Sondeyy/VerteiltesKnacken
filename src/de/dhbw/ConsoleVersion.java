@@ -34,7 +34,7 @@ public class ConsoleVersion {
 
         for (int i = 0; i < Integer.parseInt(props.getProperty("workerThreads")); i++) {
             Worker worker;
-            if (i == 0 && props.getProperty("client").equals("no")) {
+            if (i == 0 && (props.getProperty("client").equals("no") || props.getProperty("connectionPort").equals(props.getProperty("myPort")))) {
                 System.out.println("Creating first Worker");
                 worker = new Worker(
                         Integer.parseInt(props.getProperty("myPort")),
