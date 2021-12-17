@@ -189,6 +189,7 @@ public class Worker implements Runnable {
         try{
             this.startIndex = this.selectPrimeRange();
         }catch (IndexOutOfBoundsException e){
+            Logger.log("All segments calculated, wait for termination");
             return;
         }
 
