@@ -742,7 +742,7 @@ public class Worker implements Runnable {
     private int getWorkerCount() {
         int workerCount = 0;
         for (Connection connection : connections) {
-            if (connection.getRole() != Role.CLIENT) workerCount++;
+            if (connection.getRole() == Role.WORKER) workerCount++;
         }
         return workerCount;
     }
