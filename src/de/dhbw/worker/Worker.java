@@ -203,7 +203,7 @@ public class Worker implements Runnable {
     }
 
     /**
-     * Start a new calculation in an extra thread for the selected segments
+     * Start a new calculation in an extra thread for the selected segments (startIndex)
      */
     private void startCalculation() {
         double percentageCalculated;
@@ -474,6 +474,7 @@ public class Worker implements Runnable {
                 if (this.state == States.WAIT_FOR_OK) {
                     this.state = States.FINISHED_TASK;
                     this.okCount = 0;
+
                     this.askForPrimeRange();
                 }
             }
@@ -498,7 +499,11 @@ public class Worker implements Runnable {
                 PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
 
                 // stop calculation
-                this.primeCalculation.stopCalculation();
+                try{
+                    this.primeCalculation.stopCalculation();
+                }catch (Exception ignored){
+
+                }
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 PrimeSolutionToClient(solution);

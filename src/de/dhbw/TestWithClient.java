@@ -15,8 +15,8 @@ public class TestWithClient {
 
         int startPort = 25_000;
 
-        int primeRange = 10000;
-        int workers = 5;
+        int primeRange = 100;
+        int workers = 4;
         int initialCalculationCount = primeRange * 50;
         ArrayList<Thread> workerThreads = new ArrayList<>();
 
@@ -53,10 +53,10 @@ public class TestWithClient {
         for (Thread workerThread : workerThreads) {
             System.out.println("--------------- start Worker -------------");
             workerThread.start();
-            Thread.sleep(500);
+            Thread.sleep(1000);
         }
 
-        Thread.sleep(600);
+        Thread.sleep(1000);
         // start client
         clientThread.start();
 
