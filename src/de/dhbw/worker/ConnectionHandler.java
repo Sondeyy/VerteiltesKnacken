@@ -60,10 +60,8 @@ public class ConnectionHandler implements Runnable {
                 Socket newSocket = Objects.requireNonNull(server).accept();
                 Connection newConnection = new Connection(newSocket);
 
-                // client vs worker connection ?
                 newConnection.connectStreamsServer();
                 worker.appendConnection(newConnection);
-                Logger.log("Connection Established!");
             } catch (IOException e) {
                 // everything fine
             }
