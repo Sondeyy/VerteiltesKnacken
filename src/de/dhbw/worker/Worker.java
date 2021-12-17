@@ -438,6 +438,7 @@ public class Worker implements Runnable {
                  * */
                 if (this.state == States.WORKING || this.state == States.WAIT_FOR_OK) {
                     if (this.startIndex == (Integer) message.getPayload()) {
+                        Logger.log("SENDING MESSAGE NOK - ".concat(String.valueOf(startIndex)));
                         answer.setType(MessageType.NOK);
                         connection.write(answer);
                         return;

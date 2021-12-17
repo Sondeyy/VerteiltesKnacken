@@ -14,9 +14,9 @@ public class Main {
 
         int startPort = 25_000;
 
-        int primeRange = 100000;
-        int workers = 10;
-        int initialCalculationCount = primeRange * 50;
+        int primeRange = 100;
+        int workers = 2;
+        int initialCalculationCount = primeRange * 10;
         ArrayList<Thread> workerThreads = new ArrayList<>();
 
         // Initialize first worker
