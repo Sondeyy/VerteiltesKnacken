@@ -475,12 +475,6 @@ public class Worker implements Runnable {
                     this.state = States.FINISHED_TASK;
                     this.okCount = 0;
 
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
                     this.askForPrimeRange();
                 }
             }
@@ -505,7 +499,12 @@ public class Worker implements Runnable {
                 PrimeCalculationResult solution = (PrimeCalculationResult) message.getPayload();
 
                 // stop calculation
-                this.primeCalculation.stopCalculation();
+                try{
+                    this.primeCalculation.stopCalculation();
+                }catch (Exception ignored){
+
+                }
+
 
                 // if connected to client, send him ANSWER FOUND message with prime numbers
                 PrimeSolutionToClient(solution);
