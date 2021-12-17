@@ -12,9 +12,9 @@ public class TestWithoutClient {
 
         int startPort = 25_000;
 
-        int primeRange = 100;
-        int workers = 1;
-        int initialCalculationCount = primeRange * 10;
+        int primeRange = 10000;
+        int workers = 2;
+        int initialCalculationCount = primeRange * 50;
         ArrayList<Thread> workerThreads = new ArrayList<>();
 
         // Initialize first worker
