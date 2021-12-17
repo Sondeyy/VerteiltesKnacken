@@ -474,6 +474,13 @@ public class Worker implements Runnable {
                 if (this.state == States.WAIT_FOR_OK) {
                     this.state = States.FINISHED_TASK;
                     this.okCount = 0;
+
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
                     this.askForPrimeRange();
                 }
             }
