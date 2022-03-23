@@ -1,5 +1,5 @@
 # VerteiltesKnacken
-Verteilte Systeme Projekt an der DHBW, 2021, INF19B
+Distributed system for brute forcing an RSA-Key.
 
 ## Maintainer 
 * Nils Boettcher, 5320806
